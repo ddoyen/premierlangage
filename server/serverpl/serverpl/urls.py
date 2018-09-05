@@ -21,6 +21,7 @@ from classmanagement.views import index
 urlpatterns = [
     url(r'^$', index ),
     url(r'^courses/', include('classmanagement.urls', namespace='classmanagement')),
+    url(r'^groups/', include('groups.urls')),
     url(r'^playexo/', include('playexo.urls', namespace="playexo")),
     url(r'^sandbox/',include('sandbox.urls', namespace="sandbox")),
     url(r'^documentation/',include('documentation.urls', namespace="documentation")),

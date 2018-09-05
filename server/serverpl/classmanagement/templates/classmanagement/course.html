@@ -32,7 +32,19 @@
                     {% endfor %}
                 </div>
             </div>
-            
+            {% if homework|length > 0 %}
+            <h2><center>Devoir maison</center></h2>
+            {% endif %}
+            {% for item in homework %}
+                <form action="/courses/course/homework/" method="get">
+                    <div class="container;pull-left" style="width: 50%">
+                    <input type="hidden" name="id" id="id" value="{{ item.id }}">
+                    <span class="input-group-btn">
+                        <button type="submit" class="btn btn-link btn-lg" value="Submit">{{ forloop.counter }}. {{ item.name }}</button>    
+                    </span>
+                    </div>
+                </form>
+            {% endfor %}
             {% for item in activity %}
                 <div class="card course-panel{% if instructor %}-instructor{%endif%}">
                     <div class="card-body">

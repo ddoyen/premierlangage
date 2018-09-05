@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 PL_MANDATORY_KEY = ['title', 'form']
 PLTP_MANDATORY_KEY = ['title', '__pl', 'introduction']
+PLDM_MANDATORY_KEY = ['title', '__pl', 'introduction', 'id_course']
 MUST_BE_STRING = ['text', 'texth', 'introductionh', 'introduction', 'form', 'evaluator', 'before', 'author', 'title']
 
 
@@ -44,7 +45,7 @@ def get_parsers():
             try:
                 module = importlib.import_module(PARSERS_MODULE+"."+splitext(f)[0])
                 parser = module.get_parser()
-                if type(parser) != dict or set(parser.keys()) != {'ext', 'type', 'parser'} or parser['type'] not in ['pl', 'pltp']:
+                if type(parser) != dict or set(parser.keys()) != {'ext', 'type', 'parser'} or parser['type'] not in ['pl', 'pltp', 'pldm']:
                     raise ValueError
                 for ext in parser['ext']:
                     if ext not in parsers:
@@ -75,7 +76,7 @@ def get_type(directory, path):
     ext = '.pl' if not ext else ext
     # FIXME the list of autorised extension should not be closed    
     if ext in parsers:
-        if parsers[ext]['type'] in ['pl', 'pltp']:
+        if parsers[ext]['type'] in ['pl', 'pltp', 'pldm']:
             return parsers[ext]['type']
         else:
             logger.warning("Unknown type : '"+ parsers[ext]['type'] + "' of parser '" + str(parsers[ext]['parser']) + "'")
@@ -128,25 +129,26 @@ def parse_file(directory, path, extending=False):
     
     parsers = get_parsers()
     ext = splitext(basename(path))[1]
-    
     if not ext:
         ext = '.pl'
         path += '.pl'
-    
     if ext in parsers:
         dic, warnings = parsers[ext]['parser'](directory, path).parse()
         dic, ext_warnings = process_extends(dic)
         warnings += ext_warnings
-        
-        if not extending:
-            if parsers[ext]['type'] == 'pltp':
-                for key in PLTP_MANDATORY_KEY:
-                    if key not in dic:
-                        raise MissingKey(join(directory.root, path), key)
-            else:
-                for key in PL_MANDATORY_KEY:
-                    if key not in dic:
-                        raise MissingKey(join(directory.root, path), key)
+
+        if parsers[ext]['type'] == 'pldm':
+            for key in PLDM_MANDATORY_KEY:
+                if key not in dic:
+                    raise MissingKey(join(directory.root, path), key)
+        elif parsers[ext]['type'] == 'pltp':
+            for key in PLTP_MANDATORY_KEY:
+                if key not in dic:
+                    raise MissingKey(join(directory.root, path), key)
+        else:
+            for key in PL_MANDATORY_KEY:
+                if key not in dic:
+                    raise MissingKey(join(directory.root, path), key)
         
         for key in MUST_BE_STRING:
             if key in dic and type(dic[key]) != str:

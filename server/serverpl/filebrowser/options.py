@@ -484,6 +484,40 @@ def load_pltp_option(request, filebrowser, target):
     return redirect_fb(filebrowser.relative)
 
 
+def load_pldm_option(request, filebrowser, target):
+    """ Load the target"""
+    if request.method != 'GET':
+        return HttpResponseNotAllowed(['GET'])
+    try:
+        rel_path = join(*(filebrowser.relative.split('/')[1:] + [target]))
+        pldm, warnings, homework = load_file(filebrowser.directory, rel_path, True)
+        if not pldm and not warnings: # pragma: no cover
+            url_lti = request.scheme + "://" + request.get_host() + "/courses/course/homework/?id=" + str(homework.id)
+            messages.info(request, "L'activité <b>'" + homework.name + "'</b> a bien été mis à jour et a pour URL LTI: \
+                                                              <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\"" + url_lti + "\">  \
+                                                              <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
+                                                              </button><br>L'activité sera créée lorsqu'une personne cliquera sur le lien \
+                                                              depuis un client LTI.""")
+        elif not pldm:  # pragma: no cover
+            messages.error(request, "Failed to load '"+target+"': \n"+warnings)
+        else:
+            if warnings:  # pragma: no cover
+                for warning in warnings:
+                    messages.warning(request, warning)
+            url_lti = request.scheme + "://" + request.get_host() + "/courses/course/homework/?id=" + str(homework.id)
+            messages.success(request, "L'activité <b>'" + homework.name + "'</b> a bien été créée et a pour URL LTI: \
+                                                  <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\"" + url_lti + "\">  \
+                                                  <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
+                                                  </button><br>L'activité sera créée lorsqu'une personne cliquera sur le lien \
+                                                  depuis un client LTI.""")
+            #messages.success(request, "Le DM <b>'" + pldm.name + "'</b> a bien été créée'")
+    except Exception as e: # pragma: no cover
+        msg = "Impossible to load '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+        messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
+        if settings.DEBUG:
+            messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
+    return redirect_fb(filebrowser.relative)
+
 
 def move_option(request, filebrowser, target):
     """ Move target to POST['destination']."""

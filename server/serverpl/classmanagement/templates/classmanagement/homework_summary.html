@@ -1,0 +1,18 @@
+{% extends "classmanagement/base.html" %}
+
+{% load static %}
+<script>alert("bjr")</script>
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/block_chart.css' %}" />
+<link rel="stylesheet" href="{% static 'css/classmanagement.css' %}" />
+{% endblock %}
+
+{% block header_script %}
+<script src="{% static 'js/block_chart.js' %}"></script> 
+{% endblock %}
+
+{% block content %}
+<div class="container" style="width: 50%">
+    {% include 'classmanagement/homework_content.html' %} 
+</div>
+{% endblock %}

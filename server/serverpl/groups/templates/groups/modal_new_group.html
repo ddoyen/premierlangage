@@ -1,0 +1,67 @@
+{% if in_group %}
+    <div class="row">
+        <button type="button" class="btn btn-dark btn-lg" data-toggle="modal" data-target="#myModal">Créer un groupe</button>
+        <div id="myModal" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <center><h1 class="modal-title">Problème</h1></center>
+                    </div>
+                    <div class="modal-body">
+                        <p>Veuillez quitter votre groupe avant d'en créer un!</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark btn-lg" data-dismiss="modal">Fermer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% elif not state %}
+    <div class="row">
+        <button type="button" class="btn btn-dark btn-lg" data-toggle="modal" data-target="#myModal">Créer un groupe</button>
+        <div id="myModal" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <center><h1 class="modal-title">Problème</h1></center>
+                    </div>
+                    <div class="modal-body">
+                        <p>La date limite a expiré!</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark btn-lg" data-dismiss="modal">Fermer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <button type="button" class="btn btn-dark btn-lg" data-toggle="modal" data-target="#myModal">Créer un groupe</button>
+    <!-- Modal -->
+    <div id="myModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <center><h1 class="modal-title">Créer un groupe</h1></center>
+                </div>
+                <div class="modal-body">
+                    <form action="/groups/group/creategroup/" method="get">
+                        <div class="form-group">
+                            <input type="hidden" name="max_members" id="max_members" value="{{ max_members }}">
+                            <input type="hidden" name="id_required_groups" id="id" value="{{ id_required_groups }}">
+                            <label>Mot de passe (Optionnel) :</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Mot de passe (Optionnel)">
+                        </div>
+                        <button type="submit" class="btn btn-dark btn-lg" value="Submit">Créer</button> 
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark btn-lg" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+

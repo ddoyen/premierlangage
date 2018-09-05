@@ -10,6 +10,10 @@ from django.db import models
 
 from filebrowser.models import Directory
 
+from datetime import datetime, timezone
+
+from django.utils import timezone
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,3 +47,15 @@ class PLTP(models.Model):
                 logger.info("PL '"+str(pl.id)+" ("+pl.name+")' has been deleted since it wasn't link to any PLTPs")
                 pl.delete()
         super(PLTP, self).delete(*args, **kwargs)
+
+
+class PLDM(models.Model):
+    sha1 = models.CharField(primary_key=True, max_length=160)
+    name = models.CharField(max_length=50, null=False)
+    json = JSONField()
+    directory = models.ForeignKey(Directory, on_delete=models.SET_NULL, null=True)
+    rel_path = models.CharField(max_length=360, null=False)
+    pltp = models.ManyToManyField(PLTP)
+
+    def __str__(self):
+        return self.name

@@ -135,6 +135,7 @@ ENTRY_OPTIONS = OptionsCategory({
             "edit":    FilebrowserOption("fas fa-edit",  "Edit", edit_option,      size=BIG, method=GET, filter=[is_text, is_not_pl]),
             "test":    FilebrowserOption("fas fa-check", "Test", test_pl_option,   size=BIG, method=GET, filter=is_pl, right=READ),
             "load":    FilebrowserOption("fas fa-play",  "Load", load_pltp_option, size=BIG, method=GET, filter=is_pltp, right=READ),
+            "load2":    FilebrowserOption("fas fa-play",  "Load", load_pldm_option, size=BIG, method=GET, filter=is_pldm, right=READ),
             "extract":  FilebrowserOption("fas fa-share-square","Extract",  extract_option, filter=is_archive, method=GET, size=BIG),
         }, dropdown=False),
     "options": OptionsGroup('Options', {

@@ -1,0 +1,19 @@
+{% extends "classmanagement/base.html" %}
+{% load static %}
+{% block alert %}{% endblock %}
+
+{% block content %}
+    <div class="container" style="width: 66%">
+        {% include 'groups/form_group_creation.html' %} 
+    </div>
+    <div class="container" style="width: 70%">
+        {% include 'filebrowser/messages.html' %} 
+    </div>
+    <div class="container" style="width: 50%">
+        {% include 'groups/all_groups.html' %}
+    </div>        
+ 
+{% endblock %}
+
+
+
