@@ -110,6 +110,12 @@ def is_pltp(path):
     return is_not_directory(path) and ext in parsers and parsers[ext]['type'] == 'pltp'
 
 
+def is_pldm(path):
+    parsers = get_parsers()
+    ext = splitext(path)[1]
+    return is_not_directory(path) and ext in parsers and parsers[ext]['type'] == 'pldm'
+
+
 def is_archive(path):
     if is_directory(path):
         return False

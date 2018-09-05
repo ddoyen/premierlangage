@@ -1,0 +1,119 @@
+<h1><center>Veuillez créer/rejoindre un groupe</center></h1>
+<br>
+{% for group in groups %}
+    <table class="table table-bordered">                  
+        <thead> 
+            {% if group.need_password %}
+                <h2><center>{{ group.name }}&nbsp;<i class="fas fa-lock" style="color:ff4d4d"></i></center></h2>
+            {% else %}
+                <h2><center>{{ group.name }}&nbsp;<i class="fas fa-unlock" style="color:#4cff15"></i></center></h2>
+            {% endif %}
+        </thead> 
+        <tbody> 
+        {% if is_teacher %}
+        <tr> 
+            <td><b>Nouveau nom de groupe</b></td> 
+            <form action="/groups/group/rename/" method="get">
+                    <div class="form-group">
+                        <input type="hidden" name="id_required_groups" value="{{ id_required_groups }}">
+                        <input type="hidden" name="id" id="id" value="{{ group.id }}">
+                        <td><input class="form-control" type="text" name="name" placeholder="Nouveau nom du groupe" required="true"></td>
+                    </div>
+                    <td style="width: 40px;" align="center">
+                        <span class="input-group-btn">
+                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-pencil-alt fa-2x" style="color:#ff4d4d"></i></button>
+                        </span>
+                    </td>
+                </form>
+            
+                <form action="/groups/group/auto_rename/" method="get">
+                    <div class="form-group">
+                        <input type="hidden" name="id_required_groups" value="{{ id_required_groups }}">
+                        <input type="hidden" name="id" id="id" value="{{ group.id }}">
+                    </div>
+                    <td style="width: 40px;" align="center">
+                        <span class="input-group-btn">
+                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-sync-alt fa-2x" style="color:#ff4d4d"></i></button>
+                        </span>
+                    </td>
+                </form>
+        </tr>
+        {% endif %}
+        <tr> 
+            <td><b>Capacité max</b></td> 
+            <td>{{ group.max_members }}</td> 
+            {% if is_teacher %}
+                <td style="width: 40px;" align="center">
+                    <a href="/groups/group/remove/?id={{group.id}}&id_required_groups={{ id_required_groups }}">
+                        <i class="fas fa-trash fa-2x" style="color:#ff4d4d"></i>
+                    </a>
+                </td>
+            {% endif %}
+        </tr> 
+        {%for student in group.students.all %}
+            <tr> 
+                <td><b>Membre n°{{forloop.counter}}</b></td> 
+                <td>{{ student }}</td> 
+                {% if is_teacher %}
+                <td style="width: 40px;" align="center"><a href="/groups/group/kick/?id={{group.id}}&id_required_groups={{ id_required_groups }}&id_student={{ student.id }}"><i class="fas fa-times fa-2x" style="color:#ff4d4d"></i></a>
+                </td>
+                {% endif %}
+            </tr>  
+        {% endfor %}
+        {% for i in group.avalaible_spot %}
+            {% if not is_teacher %}
+                <tr> 
+                    <td><b>Membre</b></td> 
+                    <td><font color="green">Disponible</font></td> 
+                </tr>  
+            {% else %}
+                <form action="/groups/group/joingroup_admin/" method="get">
+                    <input type="hidden" name="id_required_groups" value="{{ id_required_groups }}">
+                    <input type="hidden" name="id" id="id" value="{{ group.id }}">
+                    <div class="form-group">
+                        <tr> 
+                            <td><b>Membre</b></td> 
+                            <td>
+                                <select name="id_user" class="form-control" required="true">
+                                    <option value="">Etudiant à ajouter</option>
+                                    {% for member in available_student %} 
+                                        <option value="{{ member.id }}">{{ member.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td> 
+                            <td>
+                            <span class="input-group-btn">
+                                <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-plus-circle fa-2x" style="color:#ff4d4d"></i></button>
+                            </span>
+                            </td>
+                           
+                        </tr>
+                    </div>
+                </form>
+            {% endif %}
+        {% endfor %}            
+            
+    </table>
+    {% if group.avalaible_spot2 > 0 and not in_group and state%}
+        <form action="/groups/group/joingroup/" method="get">
+            <div class="container;pull-left" style="width: 50%">
+            <input type="hidden" name="id_required_groups" id="id" value="{{ id_required_groups }}">
+            <input type="hidden" name="id" id="id" value="{{ group.id }}">
+            <div class="input-group">
+                {% if group.need_password %}           
+                    <input type="password" name="password" class="form-control" placeholder="Password">
+                {% else %}
+                    <input type="hidden" name="password" class="form-control" value="">
+                {% endif %}
+            <span class="input-group-btn">
+                <button type="submit" class="btn btn-dark btn-lg" value="Submit"><i class="fas fa-plus-circle"></i></button>    
+            </span>
+            </div>
+            </div>
+        </form>
+    {% endif %}
+    {% if request.user in group.students.all and state%}
+        <a class="btn btn-dark btn-large" href="/groups/group/leavegroup/?id={{group.id}}&id_required_groups={{ id_required_groups }}">Quitter</a>
+    {% endif %}
+    <br>
+{% endfor %}

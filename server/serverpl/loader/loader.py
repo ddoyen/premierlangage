@@ -13,8 +13,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 
 from loader.parser import parse_file, get_type
-from loader.models import PL, PLTP
+from loader.models import PL, PLTP, PLDM
+from groups.models import Groups, RequiredGroups
+from classmanagement.models import Course
 from filebrowser.models import Directory
+from playexo.models import Homework
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +38,9 @@ def load_file(directory, rel_path, force=False):
     
     try:
         typ = get_type(directory, rel_path)
-        if typ == 'pltp':
+        if typ == 'pldm':
+            return load_PLDM(directory, rel_path, False)
+        elif typ == 'pltp':
             return load_PLTP(directory, rel_path, force)
         elif typ == 'pl':
             return load_PL(directory, rel_path)
@@ -115,3 +121,92 @@ def load_PL(directory, rel_path):
     name = splitext(basename(rel_path))[0]
     pl = PL(name=name, json=dic, directory=directory, rel_path=rel_path)
     return pl, [htmlprint.code(warning) for warning in warnings]
+
+
+def load_PLDM(directory, rel_path, force=False):
+    """ Load the given file as a PLTP. Save it and its PL in the database.
+
+        Return:
+            - (PLTP, []) if the PLTP was loaded successfully
+            - (PLTP, warning_list) if the PLTP was loaded with warnings
+            - (None, None) if PLTP is already loaded
+    """
+
+    name = splitext(basename(rel_path))[0]
+
+    sha1 = hashlib.sha1()
+    sha1.update((directory.name + ':' + rel_path).encode('utf-8'))
+    sha1 = sha1.hexdigest()
+
+
+
+    try:
+        existing = PLDM.objects.get(sha1=sha1)
+        path = dirname(abspath(join(directory.root, rel_path[1:]))) + "/dir" + \
+               splitext(basename(rel_path))[0]
+        dic, warnings = parse_file(directory, rel_path, path)
+        existing.name = dic['title']
+        existing.json = dic
+        existing.save()
+
+        homework = Homework.objects.filter(pldm=existing)[0]
+        homework.name = dic['title']
+        homework.date_deposit_end = datetime.strptime(dic['date']['deposit_end'] + ' +0200',
+                                             "%d/%m/%Y-%H:%M %z")
+        homework.deposit_number = dic['deposit']['number']
+        homework.deposit_size = dic['deposit']['size']
+        homework.save()
+
+        rg = RequiredGroups.objects.get(id=homework.id_requiredgroup)
+        rg.name = dic['title']
+        rg.max_members = dic['maxmembers']
+        rg.limit_date = datetime.strptime(dic['date']['group'] + ' +0200', "%d/%m/%Y-%H:%M %z")
+        rg.save()
+        return None, None, homework
+    except:  # If the PLTP does not exist, keep going
+        pass
+
+    path = dirname(abspath(join(directory.root, rel_path[1:]))) + "/dir" + \
+           splitext(basename(rel_path))[0]
+    dic, warnings = parse_file(directory, rel_path, path)
+    try:
+        course = Course.objects.get(id=int(dic['id_course']))
+    except:
+        return None, None, homework
+
+
+    pldm = PLDM(
+        sha1=sha1,
+        name=dic['title'],
+        json=dic,
+        directory=directory,
+        rel_path=rel_path
+    )
+    pldm.save()
+
+    required_groups = RequiredGroups(
+        name=dic['title'],
+        course=course,
+        max_members=dic['maxmembers'],
+        limit_date = datetime.strptime(dic['date']['group'] + ' +0200', "%d/%m/%Y-%H:%M %z")
+    )
+    required_groups.save()
+
+    homework = Homework(
+        pldm=pldm,
+        open=1,
+        name=dic['title'],
+        date_deposit_end=datetime.strptime(dic['date']['deposit_end'] + ' +0200', "%d/%m/%Y-%H:%M %z"),
+        deposit_number = dic['deposit']['number'],
+        deposit_size = dic['deposit']['size'],
+        id_requiredgroup = required_groups.id
+    )
+    homework.save()
+
+    course.homework.add(homework)
+    course.save()
+
+
+
+
+    return pldm, [htmlprint.code(warning) for warning in warnings], homework

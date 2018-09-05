@@ -1,0 +1,55 @@
+{% if is_teacher %}
+    <h1><center>Gestion des groupes !</center></h1>
+{% elif nb_group == 0 %}
+    <h1><center>Vous n'avez aucun groupe à créer ! <i class="fas fa-smile"></i></center></h1>
+{% elif nb_group == 1 %}
+<h1><center>Vous avez 1 groupe à créer <i class="fas fa-child"></i></center></h1>
+{% else %}
+<h1><center>Vous avez {{ nb_group }} groupe à créer <i class="fas fa-child"></i></center></h1>
+{% endif %}
+<br>
+{% for group in required_groups %}
+    {% if request.user in group.course.student.all or request.user in group.course.teacher.all %}
+        <table class="table table-bordered">                  
+            <thead> 
+                <h2><center>{{ group.name }}</center></h2>
+            </thead> 
+            <tbody>
+            {% if group.state %}
+            <tr> 
+                <td><b>Etat</b></td> 
+                <td><font color="green">Ouvert</font></td> 
+            </tr> 
+            {% else %}
+            <tr> 
+                <td><b>Etat</b></td> 
+                <td><font color="red">Fermé</font></td> 
+            </tr>
+            {% endif %}
+            <tr> 
+                <td><b>Capacité max</b></td> 
+                <td>{{ group.max_members }}</td> 
+            </tr> 
+            <tr> 
+                <td><b>Discipline</b></td> 
+                <td>{{ group.course.name }}</td> 
+            </tr> 
+            <tr> 
+                <td><b>Date limite</b></td> 
+                <td>{{ group.limit_date }}</td> 
+            </tr>
+
+        </table>
+        <form action="/groups/group/" method="get">
+            <div class="container;pull-left" style="width: 50%">
+                <input type="hidden" name="id" id="id" value="{{ group.id }}">
+                <div class="input-group">
+                    <span class="input-group-btn">
+                        <button type="submit" class="btn btn-dark btn-lg" value="Submit">Voir</button>    
+                    </span>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+    <br>
+{% endfor %} 

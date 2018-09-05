@@ -1,0 +1,76 @@
+{% extends "classmanagement/base.html" %}
+
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/block_chart.css' %}" />
+<link rel="stylesheet" href="{% static 'css/classmanagement.css' %}" />
+{% endblock %}
+
+{% block header_script %}
+<script src="{% static 'js/block_chart.js' %}"></script> 
+{% endblock %}
+
+
+
+
+
+
+
+
+{% block content %}
+{% if dic|length == 0 %}
+    <h2><center>Il n'y a pas de rendu</center></h2>
+{% else %}
+    <h2><center>Voici les rendus des élèves</center></h2>
+{% endif %}
+<br>
+<div class="container" style="width: 80%">
+    {% for data in dic %}
+        <table class="table table-bordered">
+            <thead><h2><center>{{ data.name }}</center></h2></thead>
+            <tbody>
+            {% for answer in data.answers %}
+                <tr>
+                    <td><b> Rendu n°{{ forloop.counter }} </b></td>
+                    <td align="center"><a class="btn btn-link" href="/courses/course/download/?id={{ answer.id }}&id_homework={{data.id_homework}}" role="button">{{ answer.file.name }}</a></td>
+                    <td><b>Note</b></td>
+                    {% if answer.grade %}
+                        <td align="center"> {{ answer.grade }} </td>
+                    {% else %}
+                        <td align="center"> Non noté </td>
+                    {% endif %}
+                    <form action="/courses/course/evaluate/" method="get">
+                        <input type="hidden" name="id_homework" value="{{ data.id_homework }}">
+                        <input type="hidden" name="id_answer" value="{{ answer.id }}"> 
+                        <td align="center">
+                            <input type="number" name="grade" class="form-control" min="0" max="20" placeholder="?" required="true">
+                        </td>
+                        {% if answer.grade %}
+                        <td>
+                            <button type="submit" class="btn btn-dark" value="Submit">Modifier</button>
+                        </td>
+                        {% else %}
+                        <td>
+                            <button type="submit" class="btn btn-dark" value="Submit">Noter</button>
+                        </td>
+                        {% endif %}
+                    </form>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endfor %}
+    <div align="right">
+        <td >
+            <a class="btn btn-link" role="button" href="/courses/course/download_all/?id_homework={{id_homework}}">
+                <i class="fas fa-file-archive fa-4x"></i>
+            </a>
+        </td>
+    </div>
+</div> 
+{% endblock %}
+
+
+
+

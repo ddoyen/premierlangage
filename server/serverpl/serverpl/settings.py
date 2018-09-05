@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'sandbox',
     'documentation',
     'markdown_deux',
+    'groups',
     #'qa',
     'taggit',
     'hitcount',
@@ -244,6 +245,8 @@ FILEBROWSER_ROOT = os.path.abspath(os.path.join(BASE_DIR, '../../home/'))
 # Default bank path
 BANK_ROOT = os.path.abspath(os.path.join(BASE_DIR, '../../bank/'))
 
+# Default PLDM path
+PLDM_ROOT = os.path.abspath(os.path.join(BASE_DIR, '../../pldm/'))
 
 # Filebrowser settings
 FILEBROWSER_DISALLOWED_CHAR = ['/', ' ', '\t', '\n', ';', '#', '+', '&']
