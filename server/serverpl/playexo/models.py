@@ -11,26 +11,52 @@ from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from jsonfield import JSONField
 
-from loader.models import PLTP, PL
+from django.utils import timezone
+from loader.models import PLTP, PL, PLDM
 
 from playexo.enums import State
 
-
+def user_directory_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    return 'homework_{0}/{1}'.format(instance.id, filename)
 
 class Activity(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, null=False)
     pltp = models.ForeignKey(PLTP, null=False, on_delete=models.CASCADE)
     open = models.BooleanField(null = False, default = True)
-    
+
     def __str__(self):
         return str(self.id)+" "+self.name
 
 
+class AnswerHomework(models.Model):
+    id = models.AutoField(primary_key=True)
+    file = models.FileField(upload_to=user_directory_path)
+    id_group = models.IntegerField(null=True)
+    name = models.CharField(max_length=200, null=True)
+    grade = models.IntegerField(null=True)
+
+
+class Homework(models.Model):
+    id = models.AutoField(primary_key=True)
+    pldm = models.ForeignKey(PLDM, null=False, on_delete=models.CASCADE)
+    open = models.BooleanField(null=False, default=True)
+    name = models.CharField(max_length=200, null=False)
+    date_deposit_end = models.DateTimeField(default=timezone.now, blank=True)
+    deposit_number = models.IntegerField(null=True)
+    deposit_size = models.IntegerField(null=True)
+    id_requiredgroup = models.IntegerField(null=True)
+    answers = models.ManyToManyField(AnswerHomework, blank=True)
+
+    def __str__(self):
+        return str(self.id)+" "+self.name
+
 class ActivityTest(models.Model):
     name = models.CharField(max_length=200, null=False)
-    pltp = models.ForeignKey(PLTP, null=False,  on_delete=models.CASCADE)
+    pltp = models.ForeignKey(PLTP, null=False, on_delete=models.CASCADE)
     date = models.DateTimeField(null=False, default=timezone.now)
     
     
@@ -59,7 +85,7 @@ class Answer(models.Model):
         (SUCCEEDED, 'Réussi'),
     )
     
-    value = models.TextField(max_length = 50000, null=False)
+    value = JSONField()
     user = models.ForeignKey(User, null=False, on_delete=models.CASCADE)
     pl = models.ForeignKey(PL, null=False, on_delete=models.CASCADE)
     seed = models.CharField(max_length=50, null=True)
@@ -72,7 +98,17 @@ class Answer(models.Model):
         answers = Answer.objects.filter(pl=pl, user=user).order_by("-date")
         return None if not answers else answers[0].seed
     
-    
+
+
+    @staticmethod
+    def last_success(pl, user):
+        answers = Answer.objects.filter(pl=pl, user=user).order_by("-date")
+        # FIXME if last Answer grade is -1 this is no good
+        return False if not answers else answers[0].grade > 0
+
+
+
+
     @staticmethod
     def last_answer(pl, user):
         answers = Answer.objects.filter(pl=pl, user=user).order_by("-date")
@@ -86,7 +122,8 @@ class Answer(models.Model):
     
     @staticmethod
     def pl_state(pl, user):
-        """Return the state of the answer with the highest grade."""
+        """Return the state of the answer with the highest grade.
+        Used to set the color state """
         answers = Answer.objects.filter(user=user, pl=pl).order_by("-grade")
         return State.by_grade(None if not answers else answers[0].grade)
     

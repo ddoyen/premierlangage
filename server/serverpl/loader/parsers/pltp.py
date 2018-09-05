@@ -7,12 +7,16 @@
 
 
 import re, json, hashlib
-from os.path import join
+from os.path import join, isfile, abspath, dirname
+
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+
 from loader.exceptions import SemanticError, SyntaxErrorPL, DirectoryNotFound, FileNotFound
 from loader.utils import get_location
 from serverpl.settings import FILEBROWSER_ROOT
 
+BAD_CHAR = r''.join(settings.FILEBROWSER_DISALLOWED_CHAR)
 
 class Parser:
     """Parser used to parse pltp files with .pltp extension"""
@@ -20,14 +24,14 @@ class Parser:
     KEY = r'^(?P<key>[a-zA-Z_][a-zA-Z0-9_\.]*)\s*'
     COMMENT = r'(?P<comment>#.*)'
     VALUE = r'(?P<value>[^=@%#][^#]*?)\s*'
-    FILE = r'(?P<file>([a-zA-Z_][a-zA-Z0-9_]*:)?((\/)?[a-zA-Z0-9_.]+)(\/[a-zA-Z0-9_.]+)*)\s*'
+    FILE = r'(?P<file>([a-zA-Z0-9_]*:)?((\/)?[^' + BAD_CHAR + r']+)(\/[^' + BAD_CHAR + r']+)*)\s*'
 
     ONE_LINE = re.compile(KEY + r'(?P<operator>=|\%)\s*' + VALUE + COMMENT+r'?' + r'$')
     FROM_FILE_LINE = re.compile(KEY + r'(?P<operator>=@|\+=@)\s*' + FILE + COMMENT+r'?' + r'$')
     EXTENDS_LINE = re.compile(r'(extends|template)\s*=\s*' + FILE + COMMENT+r'?' + r'$')
     MULTI_LINE = re.compile(KEY + r'(?P<operator>==|\+=|\%=)\s*' + COMMENT+r'?' + r'$')
     PL_FILE_LINE = re.compile(r'@\s*'+ FILE + COMMENT+r'?' + r'$')
-    END_MULTI_LINE = re.compile(r'\s*==\s*')
+    END_MULTI_LINE = re.compile(r'==\s*')
     COMMENT_LINE = re.compile(r'\s*' + COMMENT + r'$')
     EMPTY_LINE = re.compile(r'\s*$')
 
@@ -35,12 +39,12 @@ class Parser:
     def __init__(self, directory, rel_path):
         self.directory = directory
         self.path = rel_path
-        self.path_parsed_file = join(directory.root, rel_path).replace(FILEBROWSER_ROOT, '')
+        self.path_parsed_file = join(directory.root, rel_path)
         self.lineno = 1
         self.dic = dict()
         self.warning = list()
         
-        with open(join(directory.root, rel_path), 'r') as f:
+        with open(self.path_parsed_file, 'r') as f:
             self.lines = f.readlines()
         
         self._multiline_dic = None
@@ -138,7 +142,17 @@ class Parser:
         if not match.group('file'):
             raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno)
         
-        directory, path = get_location(self.directory, match.group('file'), current=self.path_parsed_file)
+        try:
+            path = get_location(self.directory, match.group('file'), current=self.path_parsed_file)
+        except SyntaxError as e:
+            raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno, str(e))
+        
+        directory_name = self.directory.name
+        if not isfile(join(self.directory.root, path)):
+            for lib in [l for l in os.listdir(settings.FILEBROWSER_ROOT) if not l.isdigit()]:
+                if isfile(join(settings.FILEBROWSER_ROOT, lib, match.group('file')[1:])):
+                    directory_name = lib
+                    path = match.group('file')[1:]
         
         self.dic['__extends'].append({
             'path': path.replace(directory.name+'/', ''),
@@ -169,11 +183,19 @@ class Parser:
             self.add_warning("Key '" + key + "' overwritten at line " + str(self.lineno))
         
         try:
-            directory, path = get_location(self.directory, match.group('file'), current=self.path_parsed_file)
-            path = join(directory.root, path.replace(directory.name+'/', ''))
+            path = get_location(self.directory, match.group('file'), current=dirname(self.path))
+            path = abspath(join(self.directory.root, path))
+            if not isfile(path):
+                for lib in [l for l in os.listdir(settings.FILEBROWSER_ROOT) if not l.isdigit()]:
+                    if isfile(join(settings.FILEBROWSER_ROOT, lib, match.group('file')[1:])):
+                        path = join(settings.FILEBROWSER_ROOT, lib, path)
+                        break
+                else:
+                    raise FileNotFoundError
+            
             with open(path, 'r') as f:
                 if '+' in op:
-                    if not key in self.dic.keys():
+                    if not key in self.dic:
                         raise SemanticError(self.path_parsed_file, line, self.lineno, "Trying to append to non-existent key '"+key+"'.")
                     self.dic[key] += f.read()
                 else:
@@ -182,8 +204,8 @@ class Parser:
             raise DirectoryNotFound(self.path_parsed_file, line, match.group('file'), self.lineno)
         except FileNotFoundError:
             raise FileNotFound(self.path_parsed_file, line, path, lineno=self.lineno)
-        except ValueError:
-            raise FileNotFound(self.path_parsed_file, line, match.group('file'), lineno=self.lineno, message="Path from another directory must be absolute")
+        except SyntaxError as e:
+            raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno, str(e))
     
     
     def one_line_match(self, match, line):
@@ -267,13 +289,26 @@ class Parser:
         if not match.group('file'):
             raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno)
         
-        directory, path = get_location(self.directory, match.group('file'), current=self.path_parsed_file)
+        try:
+            path = get_location(self.directory, match.group('file'), current=dirname(self.path))
+        except SyntaxError as e:
+            raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno, str(e))
+        
+        directory_name = self.directory.name
+        if not isfile(join(self.directory.root, path)):
+            for lib in [l for l in os.listdir(settings.FILEBROWSER_ROOT) if not l.isdigit()]:
+                if isfile(join(settings.FILEBROWSER_ROOT, lib, match.group('file')[1:])):
+                    directory_name = lib
+                    path = match.group('file')[1:]
+                    break
+            else:
+                raise FileNotFound(join(self.directory.root, self.path), line, join(self.directory.name, path), self.lineno, "PL not found")
         
         self.dic['__pl'].append({
-            'path': path.replace(directory.name+'/', ''),
+            'path': path,
             'line': line,
             'lineno': self.lineno,
-            'directory_name': directory.name
+            'directory_name': directory_name
         })
     
     
@@ -323,7 +358,7 @@ class Parser:
             self.lineno += 1
         
         if self._multiline_key: # If a multiline value is still open at the end of the parsing
-            raise SyntaxErrorPL(join(self.directory.root, self.path), line[self._multiline_opened_lineno-1], self._multiline_opened_line, message="Multiline value never closed, start ")
+            raise SyntaxErrorPL(join(self.directory.root, self.path), self.lines[self._multiline_opened_lineno-1], self._multiline_opened_lineno, message="Multiline value never closed, start ")
         
         return self.dic, self.warning
 

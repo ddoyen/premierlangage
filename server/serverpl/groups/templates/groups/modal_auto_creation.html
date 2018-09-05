@@ -1,0 +1,11 @@
+ {% if is_teacher %}
+    <form action="/groups/group/auto_create/" method="get">
+        <div class="container;pull-left" style="width: 50%">
+        <input type="hidden" name="id_required_groups" value="{{ id_required_groups }}">
+        <span class="input-group-btn">
+            <button type="submit" class="btn btn-dark btn-lg" value="Submit">Création Auto.</button>    
+        </span>
+        </div>
+    </form>
+{% endif %}
+    

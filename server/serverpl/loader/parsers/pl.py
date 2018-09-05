@@ -5,12 +5,16 @@
 #  
 #  Copyright 2018 Coumes Quentin
 
-import re, json
-from os.path import join, basename, abspath
+import re, json, os, shutil
+from os.path import join, basename, abspath, dirname, isfile
+
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
+
 from loader.exceptions import SemanticError, SyntaxErrorPL, DirectoryNotFound, FileNotFound
 from loader.utils import get_location
 
+BAD_CHAR = r''.join(settings.FILEBROWSER_DISALLOWED_CHAR)
 
 class Parser:
     """Parser used to parse pl files with .pl extension"""
@@ -18,7 +22,7 @@ class Parser:
     KEY = r'^(?P<key>[a-zA-Z_][a-zA-Z0-9_\.]*)\s*'
     COMMENT = r'(?P<comment>#.*)'
     VALUE = r'(?P<value>[^=@%#][^#]*?)\s*'
-    FILE = r'(?P<file>([a-zA-Z_][a-zA-Z0-9_]*:)?((\/)?[a-zA-Z0-9_.]+)(\/[a-zA-Z0-9_.]+)*)\s*'
+    FILE = r'(?P<file>([a-zA-Z0-9_]*:)?((\/)?[^' + BAD_CHAR + r']+)(\/[^' + BAD_CHAR + r']+)*)\s*'
     ALIAS = r'((\[\s*(?P<alias>[a-zA-Z_.][a-zA-Z0-9_.]*)\s*\])\s*?)?'
 
     ONE_LINE = re.compile(KEY + r'(?P<operator>=|\%)\s*' + VALUE + COMMENT+r'?' + r'$')
@@ -26,7 +30,7 @@ class Parser:
     EXTENDS_LINE = re.compile(r'(extends|template)\s*=\s*' + FILE + COMMENT+r'?' + r'$')
     MULTI_LINE = re.compile(KEY + r'(?P<operator>==|\+=|\%=)\s*' + COMMENT+r'?' + r'$')
     SANDBOX_FILE_LINE = re.compile(r'@\s*'+ FILE + ALIAS + COMMENT+r'?' + r'$')
-    END_MULTI_LINE = re.compile(r'\s*==\s*')
+    END_MULTI_LINE = re.compile(r'==\s*')
     COMMENT_LINE = re.compile(r'\s*' + COMMENT + r'$')
     EMPTY_LINE = re.compile(r'\s*$')
     
@@ -34,12 +38,12 @@ class Parser:
     def __init__(self, directory, rel_path):
         self.directory = directory
         self.path = rel_path
-        self.path_parsed_file = join(directory.name, rel_path)
+        self.path_parsed_file = join(directory.root, rel_path)
         self.lineno = 1
         self.dic = dict()
         self.warning = list()
         
-        with open(join(directory.root, rel_path), 'r') as f:
+        with open(self.path_parsed_file, 'r')  as f:
             self.lines = f.readlines()
         
         self._multiline_dic = None
@@ -122,6 +126,7 @@ class Parser:
         self.dic['__rel_path'] = self.path_parsed_file
         self.dic['__comment'] = ''
         self.dic['__file'] = dict()
+        self.dic['__dependencies'] = [self.path_parsed_file]
         self.dic['__extends'] = list()
     
     
@@ -137,15 +142,25 @@ class Parser:
             raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno)
         
         try:
-            directory, path = get_location(self.directory, match.group('file'), current=self.path_parsed_file)
-        except ObjectDoesNotExist:
-            raise DirectoryNotFound(self.path_parsed_file, line, match.group('file'), self.lineno)
-            
+            path = get_location(self.directory, match.group('file'), current=dirname(self.path))
+        except SyntaxError as e:
+            raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno, str(e))
+        
+        directory_name = self.directory.name
+        if not isfile(join(self.directory.root, path)):
+            for lib in [l for l in os.listdir(settings.FILEBROWSER_ROOT) if not l.isdigit()]:
+                if isfile(join(settings.FILEBROWSER_ROOT, lib, match.group('file')[1:])):
+                    directory_name = lib
+                    path = match.group('file')[1:]
+                    break
+            else:
+                raise FileNotFound(join(self.directory.root, self.path), line, join(self.directory.name, path), self.lineno, "PL not found")
+        
         self.dic['__extends'].append({
-            'path': path.replace(directory.name+'/', ''),
+            'path': path,
             'line': line,
             'lineno': self.lineno,
-            'directory_name': directory.name
+            'directory_name': directory_name
         })
     
     
@@ -170,8 +185,16 @@ class Parser:
             self.add_warning("Key '" + key + "' overwritten at line " + str(self.lineno))
         
         try:
-            directory, path = get_location(self.directory, match.group('file'), current=self.path_parsed_file)
-            path = abspath(join(directory.root, path.replace(directory.name+'/', '')))
+            path = get_location(self.directory, match.group('file'), current=dirname(self.path))
+            path = abspath(join(self.directory.root, path))
+            if not isfile(path):
+                for lib in [l for l in os.listdir(settings.FILEBROWSER_ROOT) if not l.isdigit()]:
+                    if isfile(join(settings.FILEBROWSER_ROOT, lib, match.group('file')[1:])):
+                        path = join(settings.FILEBROWSER_ROOT, lib, path)
+                        break
+                else:
+                    raise FileNotFoundError
+            
             with open(path, 'r') as f:
                 if '+' in op:
                     if not key in self.dic:
@@ -183,8 +206,8 @@ class Parser:
             raise DirectoryNotFound(self.path_parsed_file, line, match.group('file'), self.lineno)
         except FileNotFoundError:
             raise FileNotFound(self.path_parsed_file, line, path, lineno=self.lineno)
-        except ValueError:
-            raise FileNotFound(self.path_parsed_file, line, match.group('file'), lineno=self.lineno, message="Path from another directory must be absolute")
+        except SyntaxError as e:
+            raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno, str(e))
     
     
     def one_line_match(self, match, line):
@@ -271,17 +294,27 @@ class Parser:
             raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno)
         
         try:
-            directory, path = get_location(self.directory, match.group('file'), current=self.path_parsed_file)
-            path = join(directory.root, path)
+            path = get_location(self.directory, match.group('file'), current=dirname(self.path))
+            path = abspath(join(self.directory.root, path))
+            if not isfile(path):
+                for lib in [l for l in os.listdir(settings.FILEBROWSER_ROOT) if not l.isdigit()]:
+                    if isfile(join(settings.FILEBROWSER_ROOT, lib, match.group('file')[1:])):
+                        path = join(settings.FILEBROWSER_ROOT, lib, path)
+                        break
+                else:
+                    raise FileNotFoundError
             name = basename(path) if not match.group('alias') else match.group('alias')
+            
+            self.dic['__dependencies'].append(path)
             with open(path, 'r') as f:
                 self.dic['__file'][name] = f.read()
+
         except ObjectDoesNotExist:
             raise DirectoryNotFound(self.path_parsed_file, line, match.group('file'), self.lineno)
         except FileNotFoundError:
             raise FileNotFound(self.path_parsed_file, line, path, lineno=self.lineno)
-        except ValueError:
-            raise FileNotFound(self.path_parsed_file, line, match.group('file'), lineno=self.lineno, message="Path from another directory must be absolute")
+        except SyntaxError:
+            raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno, "Syntax Error (path after ':' must be absolute)")
     
     
     def parse_line(self, line):

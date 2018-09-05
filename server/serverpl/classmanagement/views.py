@@ -16,10 +16,19 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
-
+from django.http import HttpResponseBadRequest, HttpResponse
+from datetime import datetime, timezone
+import os
+import zipfile
+from io import StringIO
+from django.shortcuts import render, redirect, reverse
+from django.contrib import messages
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+import json
 from classmanagement.models import Course
-
-from playexo.models import Answer, Activity
+from groups.models import RequiredGroups, Groups
+from playexo.models import Answer, Activity, Homework, AnswerHomework
 from playexo.views import activity_receiver
 from playexo.enums import State
 
@@ -91,8 +100,13 @@ def course_view(request, id):
             'open': item.open,
             'width':str(100/len_pl),
         })
-        
+
+    homework = list()
+    for item in course.homework.all().order_by("id"):
+        homework.append(item)
+
     return render(request, 'classmanagement/course.html', {
+        'homework': homework,
         'name': course.name,
         'activity': activity,
         'teacher': course.teacher.all(),
@@ -237,3 +251,224 @@ def redirect_activity(request, activity_id):
     request.session['current_pl'] = None
     request.session['testing'] = False
     return HttpResponseRedirect(reverse(activity_receiver))
+
+@login_required
+def homework_summary(request):
+    id = request.GET['id']
+    if not id:
+        return HttpResponseBadRequest("Missing 'id' parameter")
+    try:
+        homework = Homework.objects.get(id=id)
+    except:
+        raise Http404("Impossible d'accéder à la page, ce devoir n'existe pas.")
+    group_id = None
+    in_group = False
+    required_groups = RequiredGroups.objects.get(id=homework.id_requiredgroup)
+    is_teacher = False
+    if request.user in required_groups.course.teacher.all():
+        is_teacher = True
+    for group in required_groups.groups.all():
+        if request.user in group.students.all():
+            group_id = group.id
+            in_group = True
+            break
+
+    deposit = False
+    answers = list()
+    for answer in homework.answers.all():
+        homeworks = homework.answers.filter(id_group=answer.id_group)
+        group = Groups.objects.get(id=homeworks[0].id_group)
+        if request.user in group.students.all():
+            deposit = True
+            for item in homeworks:
+                answers.extend([item])
+            break
+
+    today = datetime.now(timezone.utc)
+    can_deposit = today < homework.date_deposit_end
+    if can_deposit:
+        remaining_time = homework.date_deposit_end - today
+    else:
+        remaining_time = today - homework.date_deposit_end
+
+    return render(request, 'classmanagement/homework_summary.html', {
+        'answers': answers,
+        'deposit': deposit,
+        'is_teacher': is_teacher,
+        'group_id': group_id,
+        'remaining_time': remaining_time,
+        'can_deposit': can_deposit,
+        'homework': homework,
+        'in_group': in_group,
+    })
+
+
+def new_name(lst):
+    students = []
+    for student in lst:
+        students.append(student.username)
+    name = '_'.join(students)
+    return name
+
+@login_required
+def upload_file(request):
+    id_homework = request.POST.get('id_homework', "")
+    id_requiredgroup = request.POST.get('id_requiredgroup', "")
+    rg = RequiredGroups.objects.get(id=id_requiredgroup)
+    for group in rg.groups.all():
+        if request.user in group.students.all():
+            id_group = group.id
+            break
+    homework = Homework.objects.get(id=id_homework)
+
+    if request.method == 'POST' and request.FILES['myfile']:
+        myfile = request.FILES['myfile']
+        group = Groups.objects.get(id=id_group)
+        fs = AnswerHomework(id_group=id_group, name=new_name(group.students.all()))
+        fs.save()
+        filename = fs.file.save(myfile.name, myfile)
+        fs.save()
+        homework.answers.add(fs)
+        homework.save()
+        return redirect('/courses/course/homework/?id=' + id_homework)
+    return redirect('/courses/course/homework/?id=' + id_homework)
+
+
+@login_required
+def notation(request):
+    id = request.GET['id']
+    homework = Homework.objects.get(id=id)
+    rg = RequiredGroups.objects.get(id=homework.id_requiredgroup)
+    if request.user not in rg.course.teacher.all():
+        logger.warning(
+            "User '" + request.user.username + "' denied to access all homework'" + rg.course.name + "'.")
+        raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
+    to_ignore = list()
+    dic = list()
+    id_homework = homework.id
+    for answer in homework.answers.all():
+        if answer.id_group not in to_ignore:
+            data = {}
+            homeworks = homework.answers.filter(id_group=answer.id_group)
+            group = Groups.objects.get(id=homeworks[0].id_group)
+            id_course = rg.course.id
+            data['id_course'] = id_course
+            data['name'] = group.name
+            data['id_homework'] = homework.id
+            data['answers'] = homeworks
+            if data not in dic:
+                dic.extend([data])
+            to_ignore.append(answer.id_group)
+
+    context = {
+        'id_homework': id_homework,
+        'dic': dic,
+    }
+    return render(request, "classmanagement/notation.html", context)
+
+
+@login_required
+def download_file(request):
+    id = request.GET['id']
+    id_homework = request.GET['id_homework']
+    homework = Homework.objects.get(id=int(id_homework))
+    rg = RequiredGroups.objects.get(id=homework.id_requiredgroup)
+    if request.user not in rg.course.teacher.all():
+        logger.warning(
+            "User '" + request.user.username + "' denied to download'" + homework.name + "'.")
+        raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
+    answer = AnswerHomework.objects.get(id=id)
+    filename = answer.file.name.split('/')[-1]
+    response = HttpResponse(answer.file, content_type='text/plain')
+    response['Content-Disposition'] = 'attachment; filename=%s' % filename
+    return response
+
+
+@login_required
+def evaluate(request):
+    id_answer = request.GET['id_answer']
+    id_homework = request.GET['id_homework']
+    homework = Homework.objects.get(id=id_homework)
+    rg = RequiredGroups.objects.get(id=homework.id_requiredgroup)
+    if request.user not in rg.course.teacher.all():
+        logger.warning(
+        "User '" + request.user.username + "' denied to evaluate'" + homework.name + "'.")
+        raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
+    grade = request.GET['grade']
+    answer = AnswerHomework.objects.get(id=id_answer)
+    answer.grade = grade
+    answer.save()
+
+    return redirect('/courses/course/notation/?id=' + id_homework)
+
+
+@login_required
+def remove_uploaded_file(request):
+    id = request.GET['id']
+    id_homework = request.GET['id_homework']
+    homework = Homework.objects.get(id=id_homework)
+    rg = RequiredGroups.objects.get(id=homework.id_requiredgroup)
+    answer = AnswerHomework.objects.get(id=id)
+    group = Groups.objects.get(id=answer.id_group)
+    if request.user not in group.students.all():
+        logger.warning(
+            "User '" + request.user.username + "' denied for removing'" + answer.name + "'.")
+        raise PermissionDenied("Vous n'êtes pas dans ce groupe.")
+    homework.answers.remove(answer)
+    homework.save()
+    messages.success(request, "Le devoir a bien été supprimé")
+    return redirect('/courses/course/homework/?id=' + id_homework)
+
+
+@login_required
+def download_all_file(request):
+    id_homework = request.GET['id_homework']
+    homework = Homework.objects.get(id=id_homework)
+    rg = RequiredGroups.objects.get(id=homework.id_requiredgroup)
+    if request.user not in rg.course.teacher.all():
+        logger.warning(
+        "User '" + request.user.username + "' denied download'" + homework.name + "'.")
+        raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
+    answer = homework.answers.all()
+    print(answer)
+    filenames = []
+    for i in answer:
+        print(i.file.name)
+        filenames.append(i.file.url)
+    # Files (local path) to put in the .zip
+    # FIXME: Change this (get paths from DB etc)
+
+
+    # Folder name in ZIP archive which contains the above files
+    # E.g [thearchive.zip]/somefiles/file2.txt
+    # FIXME: Set this to something better
+    zip_subdir = "somefiles"
+    zip_filename = "%s.zip" % zip_subdir
+
+    # Open StringIO to grab in-memory ZIP contents
+    s = StringIO()
+
+    # The zip compressor
+    zf = zipfile.ZipFile(s, "w")
+
+    for fpath in filenames:
+        # Calculate path for file in zip
+        fdir, fname = os.path.split(fpath)
+        zip_path = os.path.join(zip_subdir, fname)
+
+        # Add file, at correct path
+        zf.write(fpath, zip_path)
+
+    # Must close zip for all contents to be written
+    zf.close()
+
+    # Grab ZIP file from in-memory, make response with correct MIME-type
+    resp = HttpResponse(s.getvalue(), mimetype="application/x-zip-compressed")
+    # ..and correct content-disposition
+    resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+
+    return resp
+
+
+
+

@@ -10,7 +10,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from playexo.models import Activity
+from playexo.models import Activity, Homework
 
 
 class Course(models.Model):
@@ -20,6 +20,7 @@ class Course(models.Model):
     label = models.CharField(max_length=20, null=False)
     student = models.ManyToManyField(User, blank=True)
     activity = models.ManyToManyField(Activity, blank=True)
+    homework = models.ManyToManyField(Homework, blank=True)
     
     
     def is_member(self, user):
