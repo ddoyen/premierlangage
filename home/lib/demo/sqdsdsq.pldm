@@ -1,0 +1,23 @@
+title=qsdsqlmkdmqlsdmkq
+introduction==
+Dans tout programme, le programmeur fait appel à des données. Ces données peuvent
+prendre des valeurs qui peuvent évoluer pendant toute l’exécution du programme. On
+parle alors de variables . Une variable a un type qui détermine les valeurs que la variable
+peut prendre ainsi que les opérations pouvant s’y appliquer. Nous utiliserons les types
+standards de C suivant : int, float et char.
+==
+maxmembers=3
+date.group=29/09/2018-23:55
+date.deposit_end=26/10/2018-23:55
+deposit.number=1
+deposit.size=20
+deposit.late=True
+id_course=1
+
+
+
+
+
+
+
+
