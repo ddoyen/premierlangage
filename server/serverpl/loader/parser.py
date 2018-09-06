@@ -25,20 +25,20 @@ logger = logging.getLogger(__name__)
 
 PL_MANDATORY_KEY = ['title', 'form']
 PLTP_MANDATORY_KEY = ['title', '__pl', 'introduction']
-PLDM_MANDATORY_KEY = ['title', '__pl', 'introduction', 'id_course']
+PLDM_MANDATORY_KEY = ['title', '__pl', 'introduction', 'id_course','maxmembers','id_course','date.group','date.deposit_end','deposit.number','deposit.size','deposit.late']
 MUST_BE_STRING = ['text', 'texth', 'introductionh', 'introduction', 'form', 'evaluator', 'before', 'author', 'title']
 
 
 def get_parsers():
     """ Return a dict containing extension:(type, parser) key:value pair for every parser.
-    
+
         Try importing every .py file in 'parsers' as module directory
         and run module.get_parser() to get the file extensions it parses,
         the parser, and the type of file parsed ('pl' or 'pltp').
-        
+
         Add error to the logger if the importation of a .py failed or
         two parsers parse the same extension."""
-    
+
     parsers = dict()
     for f in os.listdir(PARSERS_ROOT):
         if f.endswith(".py") and "__" not in f:
@@ -69,32 +69,32 @@ def get_parsers():
 
 def get_type(directory, path):
     """Return whether the given file is a 'pltp' of a 'pl'."""
-    
+
     parsers = get_parsers()
     ext = splitext(basename(path))[1]
-    
+
     ext = '.pl' if not ext else ext
-    # FIXME the list of autorised extension should not be closed    
+    # FIXME the list of autorised extension should not be closed
     if ext in parsers:
         if parsers[ext]['type'] in ['pl', 'pltp', 'pldm']:
             return parsers[ext]['type']
         else:
             logger.warning("Unknown type : '"+ parsers[ext]['type'] + "' of parser '" + str(parsers[ext]['parser']) + "'")
             raise UnknownType(parsers[ext]['type'], parsers[ext]['parser'])
-    
+
     raise UnknownExtension(path, join(directory.name, path))
 
 
 
 def process_extends(dic):
     """ Extends dic with file in dic['__extends'].
-        
+
         Return newly extended dic.
-        
+
         Raise from loader.exceptions:
             - DirectoryNotFound if trying to load from a nonexistent directory
             - FileNotFound if the file do not exists."""
-    
+
     warnings = []
     for item in dic['__extends']:
         try:
@@ -110,23 +110,23 @@ def process_extends(dic):
             raise FileNotFound(dic['__rel_path'], item['line'], join(item['directory_name'], item['path']), lineno=item['lineno'])
         except ValueError:
             raise FileNotFound(self.path_parsed_file, line, match.group('file'), lineno=self.lineno, message="Path from another directory must be absolute")
-    
+
     return dic, warnings
 
 
 
 def parse_file(directory, path, extending=False):
     """Parse the given file with the parser class corresponding to its extension.
-       
+
        Return a tuple (dic, warning) where:
            - dic is a dictionnary containing every key of the parse file.
            - warning is a list (may be empty) containing every warning
-        
+
        Raise UnknownExtension if the extension is unknown.
        Propagate any exception raise by the called parser."""
-    
+
     path = path if path[0] != '/' else path[1:]
-    
+
     parsers = get_parsers()
     ext = splitext(basename(path))[1]
     if not ext:
@@ -139,8 +139,14 @@ def parse_file(directory, path, extending=False):
 
         if parsers[ext]['type'] == 'pldm':
             for key in PLDM_MANDATORY_KEY:
-                if key not in dic:
-                    raise MissingKey(join(directory.root, path), key)
+                keys = key.split('.')
+                dico = dic
+                for k in keys:
+                    if k not in dico:
+                        raise MissingKey(join(directory.root, path), key)
+                    if len(keys) > 1 and k == keys[-1] and type(dico[k])==dict:
+                        raise MissingKey(join(directory.root, path), key)
+                    dico = dico[k]
         elif parsers[ext]['type'] == 'pltp':
             for key in PLTP_MANDATORY_KEY:
                 if key not in dic:
@@ -149,12 +155,12 @@ def parse_file(directory, path, extending=False):
             for key in PL_MANDATORY_KEY:
                 if key not in dic:
                     raise MissingKey(join(directory.root, path), key)
-        
+
         for key in MUST_BE_STRING:
             if key in dic and type(dic[key]) != str:
                 raise TypeError("Key : '"+key+"' is '"+str(type(dic[key]))+"' but must be a string.")
-        
-       
+
+
         return dic, warnings
     
     raise UnknownExtension(path, join(directory.name, path))

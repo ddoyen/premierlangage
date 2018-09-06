@@ -46,12 +46,12 @@ def load_file(directory, rel_path, force=False):
             return load_PL(directory, rel_path)
         else:
             raise Exception("Type '" + typ + "' is not yet implemented")
-    except Exception as e: # pragma: no cover 
+    except Exception as e: # pragma: no cover
         if not settings.DEBUG:
-            return (None, htmlprint.code(str(e))) 
+            return (None, htmlprint.code(str(e)),None)
         return (None, (htmlprint.code(str(e))
                        + '<br>DEBUG set to True - Showing Traceback :<br>'
-                       + htmlprint.html_exc()))
+                       + htmlprint.html_exc()),None)
 
 
 
@@ -162,7 +162,7 @@ def load_PLDM(directory, rel_path, force=False):
         rg.max_members = dic['maxmembers']
         rg.limit_date = datetime.strptime(dic['date']['group'] + ' +0200', "%d/%m/%Y-%H:%M %z")
         rg.save()
-        return None, None, homework
+        return None, [htmlprint.code(warning) for warning in warnings], homework
     except:  # If the PLTP does not exist, keep going
         pass
 
@@ -172,7 +172,7 @@ def load_PLDM(directory, rel_path, force=False):
     try:
         course = Course.objects.get(id=int(dic['id_course']))
     except:
-        return None, None, homework
+        return None, [htmlprint.code(warning) for warning in warnings], None
 
 
     pldm = PLDM(
@@ -205,8 +205,4 @@ def load_PLDM(directory, rel_path, force=False):
 
     course.homework.add(homework)
     course.save()
-
-
-
-
     return pldm, [htmlprint.code(warning) for warning in warnings], homework
