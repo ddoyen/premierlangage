@@ -344,7 +344,7 @@ def pull_option(request, filebrowser, target):
     
     username = request.POST.get('username')
     password = request.POST.get('password')
-    
+
     ret, out, err = gitcmd.pull(normpath(join(filebrowser.full_path(), target))
                                 ,username=username, password=password)
     
@@ -492,6 +492,9 @@ def load_pldm_option(request, filebrowser, target):
         rel_path = join(*(filebrowser.relative.split('/')[1:] + [target]))
         pldm, warnings, homework = load_file(filebrowser.directory, rel_path, True)
         if not pldm and not warnings: # pragma: no cover
+            if not homework :
+                messages.error(request, "Le cours n'existe pas. Veuillez éditer le pldm.")
+                return redirect_fb(filebrowser.relative)
             url_lti = request.scheme + "://" + request.get_host() + "/courses/course/homework/?id=" + str(homework.id)
             messages.info(request, "L'activité <b>'" + homework.name + "'</b> a bien été mis à jour et a pour URL LTI: \
                                                               <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\"" + url_lti + "\">  \
