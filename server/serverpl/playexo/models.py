@@ -49,6 +49,7 @@ class Homework(models.Model):
     deposit_number = models.IntegerField(null=True)
     deposit_size = models.IntegerField(null=True)
     id_requiredgroup = models.IntegerField(null=True)
+    can_be_late = models.BooleanField(default=False)
     answers = models.ManyToManyField(AnswerHomework, blank=True)
 
     def __str__(self):

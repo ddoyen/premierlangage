@@ -155,6 +155,7 @@ def load_PLDM(directory, rel_path, force=False):
                                              "%d/%m/%Y-%H:%M %z")
         homework.deposit_number = dic['deposit']['number']
         homework.deposit_size = dic['deposit']['size']
+        homework.can_be_late = dic['can_be_late']
         homework.save()
 
         rg = RequiredGroups.objects.get(id=homework.id_requiredgroup)
@@ -199,7 +200,8 @@ def load_PLDM(directory, rel_path, force=False):
         date_deposit_end=datetime.strptime(dic['date']['deposit_end'] + ' +0200', "%d/%m/%Y-%H:%M %z"),
         deposit_number = dic['deposit']['number'],
         deposit_size = dic['deposit']['size'],
-        id_requiredgroup = required_groups.id
+        id_requiredgroup = required_groups.id,
+        can_be_late = dic['can_be_late']
     )
     homework.save()
 
