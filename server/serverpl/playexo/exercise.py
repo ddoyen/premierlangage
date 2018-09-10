@@ -19,6 +19,7 @@ lang = ['abap', 'abc', 'actionscript', 'ada', 'apache_conf', 'applescript', 'asc
 default_load = '{% load static %}{% load django_markdown %}{% load input_fields_ajax %}{% load json_filter %}'
 
 # FIXME add a comment to explain this list, maybe it should be defined elsewere
+
 pls_known = [
     ('form', 'form'), ('css', 'css'), ('pl', 'exo'),
     ('pltp', 'exo'), ('navigation', 'navigation'),

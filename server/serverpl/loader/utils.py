@@ -9,6 +9,7 @@
 from os.path import join, dirname, normpath, isfile, basename
 
 import gitcmd
+from os.path import join, dirname, normpath, isfile
 from django.conf import settings
 
 from filebrowser.models import Directory

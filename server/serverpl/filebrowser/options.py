@@ -41,11 +41,10 @@ from django.contrib import messages
 from django.http import HttpResponseNotAllowed, HttpResponse, HttpResponseBadRequest
 from django.db.utils import IntegrityError
 from django.conf import settings
-
 from filebrowser.models import Directory
 from filebrowser.utils import redirect_fb
 from filebrowser.filter import is_pl
-
+from playexo.models import Activity
 from loader.loader import load_file
 
 from playexo.exercise import PLInstance
@@ -476,6 +475,14 @@ def load_pltp_option(request, filebrowser, target):
     except Exception as e:  # pragma: no cover
         msg = "Impossible to load '" + target + "' : " + htmlprint.code(
             str(type(e)) + ' - ' + str(e))
+            activity = Activity.objects.create(name=pltp.name, pltp=pltp)
+            url_lti = request.build_absolute_uri(reverse("playexo:activity_receiver", args=[activity.pk]))
+            messages.success(request, "L'activité <b>'"+pltp.name+"'</b> a bien été créée et a pour URL LTI: \
+                                      <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\""+url_lti+"\">  \
+                                      <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
+                                      </button>")
+    except Exception as e: # pragma: no cover
+        msg = "Impossible to load '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())

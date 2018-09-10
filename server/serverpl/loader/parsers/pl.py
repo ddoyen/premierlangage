@@ -155,7 +155,6 @@ class Parser:
                     break
             else:
                 raise FileNotFound(join(self.directory.root, self.path), line, join(self.directory.name, path), self.lineno, "PL not found")
-        
         self.dic['__extends'].append({
             'path': path,
             'line': line,
@@ -208,7 +207,7 @@ class Parser:
             raise FileNotFound(self.path_parsed_file, line, path, lineno=self.lineno)
         except SyntaxError as e:
             raise SyntaxErrorPL(self.path_parsed_file, line, self.lineno, str(e))
-    
+
     
     def one_line_match(self, match, line):
         """ Map value to key if operator is '=',

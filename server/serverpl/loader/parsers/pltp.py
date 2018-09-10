@@ -9,11 +9,13 @@
 import re, json, hashlib
 from os.path import join, isfile, abspath, dirname
 
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from loader.exceptions import SemanticError, SyntaxErrorPL, DirectoryNotFound, FileNotFound
 from loader.utils import get_location
+
 from serverpl.settings import FILEBROWSER_ROOT
 
 BAD_CHAR = r''.join(settings.FILEBROWSER_DISALLOWED_CHAR)
@@ -25,6 +27,7 @@ class Parser:
     COMMENT = r'(?P<comment>#.*)'
     VALUE = r'(?P<value>[^=@%#][^#]*?)\s*'
     FILE = r'(?P<file>([a-zA-Z0-9_]*:)?((\/)?[^' + BAD_CHAR + r']+)(\/[^' + BAD_CHAR + r']+)*)\s*'
+
 
     ONE_LINE = re.compile(KEY + r'(?P<operator>=|\%)\s*' + VALUE + COMMENT+r'?' + r'$')
     FROM_FILE_LINE = re.compile(KEY + r'(?P<operator>=@|\+=@)\s*' + FILE + COMMENT+r'?' + r'$')

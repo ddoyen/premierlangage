@@ -25,13 +25,12 @@ logger = logging.getLogger(__name__)
 
 def load_file(directory, rel_path, force=False):
     """ Load the file using the right function according to the type map to its extension.
-
-        Process every exception raised by the corresponding loading function or the parser.
+        Catch every exception raised by the corresponding loading function or the parser.
 
         Return:
             - (PLTP/PL, []) if the PLTP/PL was loaded successfully
             - (PLTP/PL, warning_list) if the PLTP/PL was loaded with warnings
-            - (None, error_msg) if PLTP/PL couldn't be loaded
+            - (None, error_msg) if PLTP/PL couldn't be loaded /  an exception was catch
             - (None, None) if PLTP/PL is already loaded
     """
 
@@ -88,6 +87,9 @@ def load_PLTP(directory, rel_path, force=False):
 
     path = dirname(abspath(join(directory.root, rel_path[1:]))) + "/dir" + \
            splitext(basename(rel_path))[0]
+
+    path = dirname(abspath(join(directory.root, rel_path[1:])))+"/dir"+splitext(basename(rel_path))[0]
+
     dic, warnings = parse_file(directory, rel_path, path)
 
     pl_list = list()

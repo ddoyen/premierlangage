@@ -11,10 +11,12 @@ import logging
 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect, HttpResponseNotAllowed, HttpResponseBadRequest
+from django.shortcuts import redirect, reverse
 from django.urls import reverse
 from django.http import HttpResponseBadRequest, HttpResponse
 from datetime import datetime, timezone
@@ -698,3 +700,7 @@ def upload_grade(request):
                 deposit.save()
     return redirect('/courses/course/notation/?id=' + id_homework)
 
+
+def disconnect(request):
+    logout(request)
+    return redirect(reverse('classmanagement:login'))
