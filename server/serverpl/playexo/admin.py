@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from playexo.models import Activity, Answer, Homework, AnswerHomework
+from playexo.models import Activity, Answer, Homework, AnswerHomework, Deposit
 
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
@@ -17,3 +17,7 @@ class HomeworkAdmin(admin.ModelAdmin):
 @admin.register(AnswerHomework)
 class HomeworkAdmin(admin.ModelAdmin):
     list_display=('__str__', 'id')
+
+@admin.register(Deposit)
+class HomeworkAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'id')

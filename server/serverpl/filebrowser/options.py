@@ -55,27 +55,29 @@ def mkdir_option(request, filebrowser, target):
     """Create a new folder named target at filebrowser.full_path()"""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     name = request.POST.get('name')
-    
+
     if not name:
         return HttpResponseBadRequest("Missing 'name' or parameter")
 
     try:
         path = normpath(join(filebrowser.full_path(), name))
-        
+
         if any(c in name for c in settings.FILEBROWSER_DISALLOWED_CHAR):
             messages.error(request, "Can't create directory '" + name
-                                  + "': name should not contain any of " + str(settings.FILEBROWSER_DISALLOWED_CHAR) + ".")
+                           + "': name should not contain any of " + str(
+                settings.FILEBROWSER_DISALLOWED_CHAR) + ".")
         elif isdir(path) or isfile(path):
             messages.error(request, "Can't create directory '" + name
-                                  + "': this name is already used.")
+                           + "': this name is already used.")
         else:
             os.mkdir(path)
             messages.success(request, "Folder '" + name + "' successfully created !")
-    
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to create '"+name+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to create '" + name + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
@@ -94,20 +96,21 @@ def display_option(request, filebrowser, target):
             lines = f.readlines()
         return render(request, 'filebrowser/file.html', {'file': lines, 'filename': basename(path)})
 
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to display '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to display '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
 
-    return redirect_fb(filebrowser.relative)  # pragma: no cover 
+    return redirect_fb(filebrowser.relative)  # pragma: no cover
 
 
 def rename_option(request, filebrowser, target):
     """ Rename targeted entry with POST['name'] """
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest("Missing 'name' parameter.")
@@ -117,22 +120,23 @@ def rename_option(request, filebrowser, target):
         target_path = join(filebrowser.full_path(), name)
         if any(c in name for c in settings.FILEBROWSER_DISALLOWED_CHAR):
             messages.error(request, "Can't rename '" + target + "' to '" + name
-                                  + "': name should not contain any of " + str(settings.FILEBROWSER_DISALLOWED_CHAR) + ".")
+                           + "': name should not contain any of " + str(
+                settings.FILEBROWSER_DISALLOWED_CHAR) + ".")
         elif isfile(target_path) or isdir(target_path):
             messages.error(request, "Can't rename '" + target + "' to '" + name
-                                  + "': this name is already used.")
+                           + "': this name is already used.")
         else:
             os.rename(path, target_path)
             messages.success(request, "'" + target + "' successfully renamed to '" + name + "' !")
-    
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to rename '" + target + "' : " + htmlprint.code(str(type(e)) + ' - ' + str(e))
+
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to rename '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def copy_option(request, filebrowser, target):
@@ -150,174 +154,169 @@ def copy_option(request, filebrowser, target):
         else:
             ndestination = normpath(join(filebrowser.full_path(), destination))
         path = normpath(join(filebrowser.full_path(), target))
-        
+
         if join(filebrowser.root, filebrowser.real_home) not in ndestination:
             messages.error(request, "Impossible to copy '" + target + "' in '" + destination
-                                   + "': this directory does not exists.")
-        
+                           + "': this directory does not exists.")
+
         elif isdir(ndestination) or isfile(ndestination):
             messages.error(request, "Impossible to copy '" + target + "' in '" + destination
-                                   + "': name is already used.")
-        
+                           + "': name is already used.")
+
         elif isdir(path):
             shutil.copytree(path, ndestination)
-            messages.success(request, "'" + target + "' successfully copied to '" + destination +"' !")
-        
-        else :
+            messages.success(request,
+                             "'" + target + "' successfully copied to '" + destination + "' !")
+
+        else:
             shutil.copyfile(path, ndestination)
-            messages.success(request, "'" + target + "' successfully copied to '" + destination +"' !")
-    
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to copy '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+            messages.success(request,
+                             "'" + target + "' successfully copied to '" + destination + "' !")
+
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to copy '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-        
-    return redirect_fb(filebrowser.relative)
 
+    return redirect_fb(filebrowser.relative)
 
 
 def add_option(request, filebrowser, target):
     """ Execute a git add on the targeted entry."""
     if request.method != 'GET':
         return HttpResponseNotAllowed(['GET'])
-    
+
     ret, out, err = gitcmd.add(normpath(join(filebrowser.full_path(), target)))
-    
+
     if not ret:
         messages.success(request, "Entry successfully added to the index.")
-    else:  # pragma: no cover 
+    else:  # pragma: no cover
         messages.error(request, "Nothing to add." if not err else htmlprint.code(err + out))
-    
-    return redirect_fb(filebrowser.relative)
 
+    return redirect_fb(filebrowser.relative)
 
 
 def reset_option(request, filebrowser, target):
     """ Execute a git reset on the targeted entry."""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     commit = request.POST.get('commit')
     mode = request.POST.get('mode')
-    
+
     ret, out, err = gitcmd.reset(normpath(join(filebrowser.full_path(), target)),
                                  mode if mode else 'mixed',
                                  commit if commit else 'HEAD')
-    
+
     if not ret:
         messages.success(request, htmlprint.code(out + err))
-    else:  # pragma: no cover 
+    else:  # pragma: no cover
         messages.error(request, htmlprint.code(err + out))
-    
-    return redirect_fb(filebrowser.relative)
 
+    return redirect_fb(filebrowser.relative)
 
 
 def commit_option(request, filebrowser, target):
     """ Execute an add and commit of the targeted entry with the informations of POST. """
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     commit = request.POST.get('commit')
     if not commit:
         return HttpResponseBadRequest("Missing 'commit' parameter")
-    
+
     ret, out, err = gitcmd.commit(normpath(join(filebrowser.full_path(), target)), commit)
 
     if not ret:
         messages.success(request, htmlprint.code(out + err))
-    else:  # pragma: no cover 
+    else:  # pragma: no cover
         messages.error(request, htmlprint.code(err + out))
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def change_branch_option(request, filebrowser, target):
     """ Execute a checkout to change current branch with the informations of POST. """
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     branch = request.POST.get('name')
     new = request.POST.get('new')
     if not branch:
         return HttpResponseBadRequest("Missing 'branch' parameter")
-    
+
     ret, out, err = gitcmd.checkout(normpath(join(filebrowser.full_path(), target)), branch, new)
-    
+
     if not ret:
         messages.success(request, htmlprint.code(out + err))
-    else:  # pragma: no cover 
+    else:  # pragma: no cover
         messages.error(request, htmlprint.code(err + out))
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def checkout_option(request, filebrowser, target):
     """ Execute a checkout of the targeted entry with the informations of POST. """
     if request.method != 'GET':
         return HttpResponseNotAllowed(['GET'])
-    
+
     ret, out, err = gitcmd.checkout(normpath(join(filebrowser.full_path(), target)))
-    
+
     if not ret:
         messages.success(request, "Entry successfully checked out.")
-    else:  # pragma: no cover 
+    else:  # pragma: no cover
         messages.error(request, "Nothing to checked out." if not err else htmlprint.code(err + out))
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def status_option(request, filebrowser, target):
     """ Execute a git status on the targeted entry."""
     if request.method != 'GET':
         return HttpResponseNotAllowed(['GET'])
-    
+
     ret, out, err = gitcmd.status(normpath(join(filebrowser.full_path(), target)))
-    
+
     if not ret:
         messages.success(request, htmlprint.code(out + err))
-    else: # pragma: no cover 
+    else:  # pragma: no cover
         messages.error(request, htmlprint.code(err + out))
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def branch_option(request, filebrowser, target):
     """ Execute a git branch on the targeted entry."""
     if request.method != 'GET':
         return HttpResponseNotAllowed(['GET'])
-    
+
     ret, out, err = gitcmd.branch(normpath(join(filebrowser.full_path(), target)))
-    
+
     if not ret:
         messages.success(request, htmlprint.code(out + err))
-    else: # pragma: no cover 
+    else:  # pragma: no cover
         messages.error(request, htmlprint.code(err + out))
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def clone_option(request, filebrowser, target):
     """ Execute a git clone on the targeted entry with the informations of POST."""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     username = request.POST.get('username')
     password = request.POST.get('password')
     url = request.POST.get('url')
     destination = request.POST.get('destination')
     if not url:
-       return HttpResponseBadRequest("Missing 'url' parameter")
-    
+        return HttpResponseBadRequest("Missing 'url' parameter")
+
     if '@' in url:
         messages.error(request, "SSH link is not supported, please use HTTPS")
-        
+
     else:
         path = normpath(join(filebrowser.full_path(), target))
         ret, out, err = gitcmd.clone(path, url, destination, username, password)
@@ -336,45 +335,42 @@ def clone_option(request, filebrowser, target):
     return redirect_fb(filebrowser.relative)
 
 
-
 def pull_option(request, filebrowser, target):
     """ Execute a git pull on the targeted entry with the informations of POST."""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     username = request.POST.get('username')
     password = request.POST.get('password')
 
     ret, out, err = gitcmd.pull(normpath(join(filebrowser.full_path(), target))
-                                ,username=username, password=password)
-    
+                                , username=username, password=password)
+
     if not ret:
         messages.success(request, htmlprint.code(out + err))
     else:
         messages.error(request, htmlprint.code(err + out))
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def push_option(request, filebrowser, target):
     """ Execute a git push on the targeted entry with the informations of POST."""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     username = request.POST.get('username')
     password = request.POST.get('password')
-    
+
     ret, out, err = gitcmd.push(normpath(join(filebrowser.full_path(), target)),
-                                  username=username, password=password)
-    
+                                username=username, password=password)
+
     if not ret:
         messages.success(request, htmlprint.code(out + err))
     else:
         messages.error(request, htmlprint.code(err + out))
 
     return redirect_fb(filebrowser.relative)
-
 
 
 def download_option(request, filebrowser, target):
@@ -387,9 +383,9 @@ def download_option(request, filebrowser, target):
         filename = basename(path) + datetime.datetime.now().strftime("_%dd-%mm-%yy-%Hh-%Mm-%Ss")
 
         if isdir(path):
-            
+
             npath = path + datetime.datetime.now().strftime("_%dd-%mm-%yy-%Hh-%Mm-%Ss")
-            
+
             shutil.make_archive(npath, 'zip', root_dir=path)
             filename += ".zip"
             npath += ".zip"
@@ -403,52 +399,53 @@ def download_option(request, filebrowser, target):
 
         return response
 
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to download '" + target + "' : " + htmlprint.code(str(type(e)) + ' - ' + str(e))
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to download '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-    
+
     finally:
         if isdir(path):
             os.remove(npath)
-    
-    return redirect_fb(filebrowser.relative)  # pragma: no cover 
 
+    return redirect_fb(filebrowser.relative)  # pragma: no cover
 
 
 def new_file_option(request, filebrowser, target):
     """Create a new file and launch the PL editor"""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     name = request.POST.get('name')
-    if not name :
+    if not name:
         return HttpResponseBadRequest("Missing 'name' parameter")
-        
+
     try:
         path = normpath(join(filebrowser.full_path(), name))
-        
-        if any(c in name for c in settings.FILEBROWSER_DISALLOWED_CHAR): 
-            messages.error(request, "Can't create file '" + name 
-                                  + "': name should not contain any of " + str(settings.FILEBROWSER_DISALLOWED_CHAR) + ".") 
-        
-        elif isdir(path) or isfile(path): 
-            messages.error(request, "Can't create file '" + name 
-                                  + "': this name is already used.") 
-        else: 
+
+        if any(c in name for c in settings.FILEBROWSER_DISALLOWED_CHAR):
+            messages.error(request, "Can't create file '" + name
+                           + "': name should not contain any of " + str(
+                settings.FILEBROWSER_DISALLOWED_CHAR) + ".")
+
+        elif isdir(path) or isfile(path):
+            messages.error(request, "Can't create file '" + name
+                           + "': this name is already used.")
+        else:
             f = open(path, "w")
             f.close()
-            messages.success(request, "File '" + name + "' successfully created !") 
- 
-    except Exception as e: # pragma: no cover 
-        msg = "Impossible to create '"+name+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e)) 
-        messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, "")) 
-        if settings.DEBUG: 
-            messages.error(request, "DEBUG set to True: " + htmlprint.html_exc()) 
- 
-    return redirect_fb(filebrowser.relative) 
+            messages.success(request, "File '" + name + "' successfully created !")
 
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to create '" + name + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
+        messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
+        if settings.DEBUG:
+            messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
+
+    return redirect_fb(filebrowser.relative)
 
 
 def load_pltp_option(request, filebrowser, target):
@@ -460,24 +457,25 @@ def load_pltp_option(request, filebrowser, target):
         rel_path = join(*(filebrowser.relative.split('/')[1:] + [target]))
         pltp, warnings = load_file(filebrowser.directory, rel_path, True)
 
-        if not pltp and not warnings: # pragma: no cover 
+        if not pltp and not warnings:  # pragma: no cover
             messages.info(request, "This PLTP is already loaded")
-        elif not pltp:  # pragma: no cover 
-            messages.error(request, "Failed to load '"+target+"': \n"+warnings)
+        elif not pltp:  # pragma: no cover
+            messages.error(request, "Failed to load '" + target + "': \n" + warnings)
         else:
-            if warnings:  # pragma: no cover 
+            if warnings:  # pragma: no cover
                 for warning in warnings:
                     messages.warning(request, warning)
-            url_lti = request.scheme + "://" + request.get_host()+"/playexo/activity/lti/"+pltp.name+"/"+pltp.sha1+"/"
-            url_test = "/playexo/activity/test/"+pltp.name+"/"+pltp.sha1+"/"
-            messages.success(request, "L'activité <b>'"+pltp.name+"'</b> a bien été créée et a pour URL LTI: \
-                                      <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\""+url_lti+"\">  \
+            url_lti = request.scheme + "://" + request.get_host() + "/playexo/activity/lti/" + pltp.name + "/" + pltp.sha1 + "/"
+            url_test = "/playexo/activity/test/" + pltp.name + "/" + pltp.sha1 + "/"
+            messages.success(request, "L'activité <b>'" + pltp.name + "'</b> a bien été créée et a pour URL LTI: \
+                                      <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\"" + url_lti + "\">  \
                                       <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
                                       </button><br>L'activité sera créée lorsqu'une personne cliquera sur le lien \
                                       depuis un client LTI. Pour la tester en local, cliquez <a target=\"_blank\" \
-                                      href=\""+url_test+"\">ici</a>.""")
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to load '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+                                      href=\"" + url_test + "\">ici</a>.""")
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to load '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
@@ -491,31 +489,34 @@ def load_pldm_option(request, filebrowser, target):
     try:
         rel_path = join(*(filebrowser.relative.split('/')[1:] + [target]))
         pldm, warnings, homework = load_file(filebrowser.directory, rel_path, True)
-        if not pldm and not warnings: # pragma: no cover
-            if not homework :
+        if not pldm and not warnings:  # pragma: no cover
+            if not homework:
                 messages.error(request, "Le cours n'existe pas. Veuillez éditer le pldm.")
                 return redirect_fb(filebrowser.relative)
-            url_lti = request.scheme + "://" + request.get_host() + "/courses/course/homework/?id=" + str(homework.id)
+            url_lti = request.scheme + "://" + request.get_host() + "/courses/course/homework/?id=" + str(
+                homework.id)
             messages.info(request, "L'activité <b>'" + homework.name + "'</b> a bien été mis à jour et a pour URL LTI: \
                                                               <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\"" + url_lti + "\">  \
                                                               <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
                                                               </button><br>L'activité sera créée lorsqu'une personne cliquera sur le lien \
                                                               depuis un client LTI.""")
         elif not pldm:  # pragma: no cover
-            messages.error(request, "Failed to load '"+target+"': \n"+warnings)
+            messages.error(request, "Failed to load '" + target + "': \n" + warnings)
         else:
             if warnings:  # pragma: no cover
                 for warning in warnings:
                     messages.warning(request, warning)
-            url_lti = request.scheme + "://" + request.get_host() + "/courses/course/homework/?id=" + str(homework.id)
+            url_lti = request.scheme + "://" + request.get_host() + "/courses/course/homework/?id=" + str(
+                homework.id)
             messages.success(request, "L'activité <b>'" + homework.name + "'</b> a bien été créée et a pour URL LTI: \
                                                   <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\"" + url_lti + "\">  \
                                                   <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
                                                   </button><br>L'activité sera créée lorsqu'une personne cliquera sur le lien \
                                                   depuis un client LTI.""")
-            #messages.success(request, "Le DM <b>'" + pldm.name + "'</b> a bien été créée'")
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to load '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+            # messages.success(request, "Le DM <b>'" + pldm.name + "'</b> a bien été créée'")
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to load '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
@@ -537,37 +538,38 @@ def move_option(request, filebrowser, target):
             ndestination = join(filebrowser.root, filebrowser.real_home, destination[1:])
         else:
             ndestination = normpath(join(filebrowser.full_path(), destination))
-        
+
         if join(filebrowser.root, filebrowser.real_home) not in ndestination:
             messages.error(request, "Impossible to move '" + target + "' inside '" + destination
-                                  + "': this directory does not exists.")
-        
+                           + "': this directory does not exists.")
+
         elif not isdir(ndestination):
             messages.error(request, "Impossible to move '" + target + "' inside '" + destination
-                                   + "': destination isn't a directory.")
-        
+                           + "': destination isn't a directory.")
+
         elif path in ndestination:
             messages.error(request, "Impossible to move '" + target + "' inside '" + destination
-                                   + "': Can't move a directory inside itself.")
-        
+                           + "': Can't move a directory inside itself.")
+
         else:
             ndestination = join(ndestination, target)
             if isdir(ndestination) or isfile(ndestination):
                 messages.error(request, "Impossible to move '" + target + "' inside '" + destination
-                                      + "': name '" + target + "' already exists in destination.")
-            
+                               + "': name '" + target + "' already exists in destination.")
+
             else:
                 os.rename(path, ndestination)
-                messages.success(request, "'" + target + "' successfully moved to '" + destination +"' !")
-    
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to copy '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+                messages.success(request,
+                                 "'" + target + "' successfully moved to '" + destination + "' !")
+
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to copy '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-        
-    return redirect_fb(filebrowser.relative)
 
+    return redirect_fb(filebrowser.relative)
 
 
 def delete_option(request, filebrowser, target):
@@ -581,9 +583,10 @@ def delete_option(request, filebrowser, target):
             shutil.rmtree(path, ignore_errors=True)
         else:
             os.remove(path)
-        messages.success(request, "'"+target+"' successfully deleted !")
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to delete '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+        messages.success(request, "'" + target + "' successfully deleted !")
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to delete '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
@@ -604,18 +607,18 @@ def edit_option(request, filebrowser, target):
             'file_content': content,
             'relative': filebrowser.relative,
             'filename': basename(path),
-            'filepath': path.replace(settings.FILEBROWSER_ROOT+'/', ''),
+            'filepath': path.replace(settings.FILEBROWSER_ROOT + '/', ''),
             'dir_name': filebrowser.directory.name,
         })
 
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to edit '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to edit '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-    
-    return redirect_fb(filebrowser.relative)  # pragma: no cover 
 
+    return redirect_fb(filebrowser.relative)  # pragma: no cover
 
 
 def edit_pl_option(request, filebrowser, target):
@@ -627,41 +630,41 @@ def edit_pl_option(request, filebrowser, target):
         path = normpath(join(filebrowser.full_path(), target))
         with open(path, 'r') as f:
             content = f.read()
-        
+
         rel_path = join(*(filebrowser.relative.split('/')[1:] + [target]))
         pl, warnings = load_file(filebrowser.directory, rel_path)
         if not pl:
-            preview = '<div class="alert alert-danger" role="alert"> Failed to load \''+target+"': \n"+warnings+"</div>"
+            preview = '<div class="alert alert-danger" role="alert"> Failed to load \'' + target + "': \n" + warnings + "</div>"
         else:
-            if warnings:  # pragma: no cover 
+            if warnings:  # pragma: no cover
                 [messages.warning(request, warning) for warning in warnings]
-            
+
             try:
                 exercise = PLInstance(pl.json)
                 request.session['exercise'] = dict(exercise.dic)
-                
+
                 preview = exercise.render(request)
-            except Exception as e:  # pragma: no cover 
+            except Exception as e:  # pragma: no cover
                 preview = '<div class="alert alert-danger" role="alert"> Failed to load \'' \
-                    + basename(rel_path) + "': \n\n" \
-                    + htmlprint.code(str(e)) + "</div>"
+                          + basename(rel_path) + "': \n\n" \
+                          + htmlprint.code(str(e)) + "</div>"
         return render(request, 'filebrowser/editor_pl.html', {
             'file_content': content,
             'filename': basename(path),
             'relative': filebrowser.relative,
-            'filepath': path.replace(settings.FILEBROWSER_ROOT+'/', ''),
+            'filepath': path.replace(settings.FILEBROWSER_ROOT + '/', ''),
             'dir_name': filebrowser.directory.name,
             'preview': preview,
         })
 
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to edit '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to edit '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-    
-    return redirect_fb(filebrowser.relative)  # pragma: no cover 
 
+    return redirect_fb(filebrowser.relative)  # pragma: no cover
 
 
 def test_pl_option(request, filebrowser, target):
@@ -685,59 +688,59 @@ def test_pl_option(request, filebrowser, target):
             'preview': preview,
         })
 
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to test '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to test '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-    
-    return redirect_fb(filebrowser.relative)  # pragma: no cover 
 
+    return redirect_fb(filebrowser.relative)  # pragma: no cover
 
 
 def upload_option(request, filebrowser, target):
     """ Allow the user to upload a file in the filebrowser """
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    
+
     relative = request.POST.get('relative')
     relative_h = request.POST.get('relative_h')
     f = request.FILES.get('file')
     name = request.POST.get('rename')
     name = name if name else f.name
-    
+
     if not f:
         return HttpResponseBadRequest("File is missing")
-    
+
     try:
-        
+
         path = normpath(join(filebrowser.full_path(), name))
         if isfile(path) or isdir(path):
             messages.error(request, "This file's name is already used")
-        
+
         else:
             with open(path, 'wb+') as dest:
                 for chunk in f.chunks():
                     dest.write(chunk)
             messages.success(request, "File '" + name + "' successfully uploaded.")
 
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to upload '"+name+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to upload '" + name + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-    
-    return redirect_fb(filebrowser.relative)
 
+    return redirect_fb(filebrowser.relative)
 
 
 def extract_option(request, filebrowser, target):
     """ Extract the given archive """
     if request.method != 'GET':
         return HttpResponseNotAllowed(['GET'])
-    
+
     try:
-        
+
         path = normpath(join(filebrowser.full_path(), target))
         mime = magic.from_file(path, mime=True).split('/')[1]
         if mime == 'zip':
@@ -747,12 +750,13 @@ def extract_option(request, filebrowser, target):
             with tarfile.open(path) as arc:
                 arc.extractall(join(filebrowser.full_path(), splitext(target)[0]))
         else:
-            raise ValueError("Can't extract '"+mime+"' files.")
-        messages.success(request, "Archive '"+target+"' successfully extracted.")
-    except Exception as e: # pragma: no cover
-        msg = "Impossible to extract '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
+            raise ValueError("Can't extract '" + mime + "' files.")
+        messages.success(request, "Archive '" + target + "' successfully extracted.")
+    except Exception as e:  # pragma: no cover
+        msg = "Impossible to extract '" + target + "' : " + htmlprint.code(
+            str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))
         if settings.DEBUG:
             messages.error(request, "DEBUG set to True: " + htmlprint.html_exc())
-    
+
     return redirect_fb(filebrowser.relative)

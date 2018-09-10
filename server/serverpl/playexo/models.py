@@ -10,17 +10,16 @@ from datetime import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils import timezone
 from jsonfield import JSONField
-
 from django.utils import timezone
 from loader.models import PLTP, PL, PLDM
+
 
 from playexo.enums import State
 
 def user_directory_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return 'homework_{0}/{1}'.format(instance.id, filename)
+    return 'DM/homework_{0}/{1}/{2}'.format(instance.id_homework, instance.id_group, filename)
 
 class Activity(models.Model):
     id = models.IntegerField(primary_key=True)
@@ -31,14 +30,23 @@ class Activity(models.Model):
     def __str__(self):
         return str(self.id)+" "+self.name
 
+class Deposit(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=200, null=False)
+    file = models.FileField(upload_to=user_directory_path)
+    date = models.DateTimeField(null=False, default=timezone.now)
+    grade = models.IntegerField(null=True)
+    id_group = models.IntegerField(null=True)
+    id_homework = models.IntegerField(null=True)
+
+    def __str__(self):
+        return str(self.id)
 
 class AnswerHomework(models.Model):
     id = models.AutoField(primary_key=True)
-    file = models.FileField(upload_to=user_directory_path)
+    deposits = models.ManyToManyField(Deposit, blank=True)
     id_group = models.IntegerField(null=True)
     name = models.CharField(max_length=200, null=True)
-    grade = models.IntegerField(null=True)
-
 
 class Homework(models.Model):
     id = models.AutoField(primary_key=True)
@@ -51,6 +59,7 @@ class Homework(models.Model):
     id_requiredgroup = models.IntegerField(null=True)
     can_be_late = models.BooleanField(default=False)
     answers = models.ManyToManyField(AnswerHomework, blank=True)
+    extension = models.CharField(max_length=100, null=False)
 
     def __str__(self):
         return str(self.id)+" "+self.name
