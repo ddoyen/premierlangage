@@ -8,11 +8,33 @@ standards de C suivant : int, float et char.
 ==
 maxmembers=3
 date.group=29/09/2018-23:55
-date.deposit_end=26/10/2018-23:55
-deposit.number=0
-deposit.size=20
-deposit.late=True
+date.deposit_end=06/09/2019-16:34
+deposit.number=2
+deposit.size=10
+deposit.late=False
 id_course=1
+extension=pdf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
