@@ -9,12 +9,36 @@
 
 {% block header_script %}
 <script src="{% static 'js/block_chart.js' %}"></script> 
+<!-- bootstrap 4.x is supported. You can also use the bootstrap css 3.3.x versions -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/css/fileinput.min.css" media="all" rel="stylesheet" type="text/css" />
+<!-- if using RTL (Right-To-Left) orientation, load the RTL CSS file after fileinput.css by uncommenting below -->
+<!-- link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/css/fileinput-rtl.min.css" media="all" rel="stylesheet" type="text/css" /-->
+<!-- optionally uncomment line below if using a theme or icon set like font awesome (note that default icons used are glyphicons and `fa` theme can override it) -->
+<!-- link https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css media="all" rel="stylesheet" type="text/css" /-->
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<!-- piexif.min.js is needed for auto orienting image files OR when restoring exif data in resized images and when you
+    wish to resize images before upload. This must be loaded before fileinput.min.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/js/plugins/piexif.min.js" type="text/javascript"></script>
+<!-- sortable.min.js is only needed if you wish to sort / rearrange files in initial preview. 
+    This must be loaded before fileinput.min.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/js/plugins/sortable.min.js" type="text/javascript"></script>
+<!-- purify.min.js is only needed if you wish to purify HTML content in your preview for 
+    HTML files. This must be loaded before fileinput.min.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/js/plugins/purify.min.js" type="text/javascript"></script>
+<!-- popper.min.js below is needed if you use bootstrap 4.x. You can also use the bootstrap js 
+   3.3.x versions without popper.min.js. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+<!-- bootstrap.min.js below is needed if you wish to zoom and preview file content in a detail modal
+    dialog. bootstrap 4.x is supported. You can also use the bootstrap js 3.3.x versions. -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" type="text/javascript"></script>
+<!-- the main fileinput plugin file -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/js/fileinput.min.js"></script>
+<!-- optionally uncomment line below for loading your theme assets for a theme like Font Awesome (`fa`) -->
+<!-- script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/themes/fa/theme.min.js"></script -->
+<!-- optionally if you need translation for your language then include  locale file as mentioned below -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.9/js/locales/LANG.js"></script>
 {% endblock %}
-
-
-
-
-
 
 
 
@@ -30,44 +54,62 @@
         <table class="table table-bordered">
             <thead><h2><center>{{ data.name }}</center></h2></thead>
             <tbody>
-            {% for answer in data.answers %}
-                <tr>
-                    <td><b> Rendu n°{{ forloop.counter }} </b></td>
-                    <td align="center"><a class="btn btn-link" href="/courses/course/download/?id={{ answer.id }}&id_homework={{data.id_homework}}" role="button">{{ answer.file.name }}</a></td>
-                    <td><b>Note</b></td>
-                    {% if answer.grade %}
-                        <td align="center"> {{ answer.grade }} </td>
-                    {% else %}
-                        <td align="center"> Non noté </td>
-                    {% endif %}
-                    <form action="/courses/course/evaluate/" method="get">
-                        <input type="hidden" name="id_homework" value="{{ data.id_homework }}">
-                        <input type="hidden" name="id_answer" value="{{ answer.id }}"> 
-                        <td align="center">
-                            <input type="number" name="grade" class="form-control" min="0" max="20" placeholder="?" required="true">
-                        </td>
-                        {% if answer.grade %}
-                        <td>
-                            <button type="submit" class="btn btn-dark" value="Submit">Modifier</button>
-                        </td>
+            {% for deposit in data.answers.deposits.all %}
+                    <tr>
+                        <td class="align-middle"><b> Rendu n°{{ forloop.counter }} 
+                            {% if deposit.date > date_limit %}
+                                (En retard)
+                            {% else %}
+                                (A l'heure)
+                            {% endif %}
+                            </b></td>
+                        <td class="align-middle"><a class="btn btn-link" href="/courses/course/download/?id={{ deposit.id }}&id_homework={{data.id_homework}}" role="button">{{ deposit.name }}</a></td>
+                        <td class="align-middle"><b>Note</b></td>
+                        {% if deposit.grade != None %}
+                            <td class="align-middle"> {{ deposit.grade }} </td>
                         {% else %}
-                        <td>
-                            <button type="submit" class="btn btn-dark" value="Submit">Noter</button>
-                        </td>
+                            <td class="align-middle"> Non noté </td>
                         {% endif %}
-                    </form>
-                </tr>
+                        <form action="/courses/course/evaluate/" method="get">
+                            <input type="hidden" name="id_homework" value="{{ data.id_homework }}">
+                            <input type="hidden" name="id_deposit" value="{{ deposit.id }}"> 
+                            <td class="align-middle">
+                                <input type="number" name="grade" class="form-control" min="0" max="100" placeholder="?" required="true">
+                            </td>
+                            {% if deposit.grade != None %}
+                            <td class="align-middle">
+                                <button type="submit" class="btn btn-dark" value="Submit">Modifier</button>
+                            </td>
+                            {% else %}
+                            <td class="align-middle">
+                                <button type="submit" class="btn btn-dark" value="Submit">Noter</button>
+                            </td>
+                            {% endif %}
+                        </form>
+                    </tr>
             {% endfor %}
             </tbody>
         </table>
     {% endfor %}
+    
+    {% if dic|length != 0 %}
     <div align="right">
         <td >
+            Télécharger tous les fichiers
             <a class="btn btn-link" role="button" href="/courses/course/download_all/?id_homework={{id_homework}}">
-                <i class="fas fa-file-archive fa-4x"></i>
+                <i class="fas fa-download fa-2x"></i>
             </a>
         </td>
     </div>
+    
+    <h2> <center>Veuillez déposer le fichier csv pour rentrer les notes </center></h2>
+    <form method="post" action="/courses/course/upload_grade/" enctype="multipart/form-data">
+        <input type="hidden" name="id_homework" value="{{ id_homework }}">
+        <input type="hidden" name="id_requiredgroup" value="{{ id_requiredgroup }}">
+        <input id="input-b1" name="myfile" type="file" class="file">
+        {% csrf_token %}
+    </form>   
+    {% endif %}
 </div> 
 {% endblock %}
 

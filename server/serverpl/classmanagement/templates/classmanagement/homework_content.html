@@ -52,6 +52,18 @@
         <td> {{ remaining_time }} </td>
         {% endif %}
     </tr>
+    <tr>
+    <td><b>Fichier à déposer</b></td>
+    <td>{{ homework.deposit_number }}</td>
+    </tr>
+    <tr>
+    <td><b>Taille limite</b></td>
+    <td>{{ homework.deposit_size }} Mb</td>
+    </tr>
+    <tr>
+    <td><b>Fichier autorisé</b></td>
+    <td>{{ homework.extension }}</td>
+    </tr>
 </tbody>
 </table>
 <br>                   
@@ -72,23 +84,31 @@
 <table class="table table-bordered"> 
     <tbody>
     {% for answer in answers %}
-    <tr>
-        <td>Rendu n°{{ forloop.counter }}</td>
-        <td>
-            <a class="btn btn-link" href="/courses/course/download/?id={{ answer.id }}&id_homework={{homework.id}}" role="button">{{ answer.file.name }}</a>
-        </td> 
-        <td style="width: 40px;">
-            <a class="btn btn-link" href="/courses/course/remove_uploaded/?id={{ answer.id }}&id_homework={{homework.id}}" role="button">
-                <i class="fas fa-times fa-2x"></i>
-            </a>
-        </td>
-    </tr>
+        {% for file in answer.deposits.all %}
+        <tr>
+            <td class="align-middle">Rendu n°{{ forloop.counter }} 
+            {% if today >  homework.date_deposit_end %}
+                (En retard)
+            {% else %}
+                (En avance)
+            {% endif %}
+            </td>
+            <td>
+                <a class="btn btn-link" href="/courses/course/download/?id={{ file.id }}&id_homework={{homework.id}}" role="button">{{ file.name }}</a>
+            </td> 
+            <td style="width: 40px;">
+                <a class="btn btn-link" href="/courses/course/remove_uploaded/?id={{ file.id }}&id_homework={{homework.id}}&id_answer={{ answer.id }}" role="button">
+                    <i class="fas fa-times"></i>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
     {% endfor %}
     </tbody>
 </table>
 {% endif %}
-{% if can_deposit %}
-<form method="post" action="/courses/course/test/" enctype="multipart/form-data">
+{% if can_deposit or can_be_late%}
+<form method="post" action="/courses/course/upload/" enctype="multipart/form-data">
     <input type="hidden" name="id_homework" value="{{ homework.id }}">
     <input type="hidden" name="id_requiredgroup" value="{{ homework.id_requiredgroup }}">
     <input id="input-b1" name="myfile" type="file" class="file">
