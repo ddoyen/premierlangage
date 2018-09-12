@@ -2,14 +2,12 @@
 
 from datetime import datetime
 
-from jsonfield import JSONField
 from django.db import models
 from django.contrib.auth.models import User
 from jsonfield import JSONField
-from django.utils import timezone
 from loader.models import PLTP, PL, PLDM
 from django.utils import timezone
-from lti.models import LTIModel, LTIgrade
+from lti.models import LTIModel
 from loader.models import PLTP, PL
 from playexo.enums import State
 
@@ -18,11 +16,12 @@ def user_directory_path(instance, filename):
     return 'DM/homework_{0}/{1}/{2}'.format(instance.id_homework, instance.id_group, filename)
 
 
-class Activity(LTIModel,LTIgrade):
+class Activity(LTIModel):
     name = models.CharField(max_length=200, null=False)
     pltp = models.ForeignKey(PLTP, null=False, on_delete=models.CASCADE)
     open = models.BooleanField(null = False, default = True)
     open = models.BooleanField(null=False, default=True)
+
 
     def __str__(self):
         return str(self.id)+" "+self.name

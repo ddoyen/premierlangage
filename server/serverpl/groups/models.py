@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import datetime
+from django.utils import timezone
 from django.contrib.auth.models import User
 from classmanagement.models import Course
 
@@ -8,7 +8,7 @@ class Groups(models.Model):
     password = models.CharField(max_length=1024, blank=True)
     name = models.CharField(max_length=1024)
     max_members = models.IntegerField(null=True)
-    creation_date = models.DateTimeField(default=datetime.now, blank=True)
+    creation_date = models.DateTimeField(default=timezone.now, blank=True)
     students = models.ManyToManyField(User, blank=True, related_name="students")
 
     def __str__(self):
@@ -20,7 +20,7 @@ class RequiredGroups(models.Model):
     name = models.CharField(max_length=1024, blank=False)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=False)
     max_members = models.IntegerField(null=True)
-    limit_date = models.DateTimeField(default=datetime.now, blank=True)
+    limit_date = models.DateTimeField(default=timezone.now, blank=True)
     groups = models.ManyToManyField(Groups, blank=True, related_name="groups")
 
     def __str__(self):

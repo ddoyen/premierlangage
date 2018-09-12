@@ -8,9 +8,11 @@ from django.conf import settings
 
 from lti.thread_local import set_current_request
 from classmanagement.models import Course
-from lti.models import LTIgrade
+from playexo.models import Activity
+from lti.models import LTIGradeActivity, LTIGradeHomework
 from user_profile.models import Profile
 from user_profile.enums import Role
+from django.urls import resolve
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +116,7 @@ class LTIAuthMiddleware(MiddlewareMixin):
                 #Field for grade in moodle
                 outcome_url = lti_launch["lis_outcome_service_url"]
                 sourcedid_lti = lti_launch["lis_result_sourcedid"]
-                lti_grade = LTIgrade(outcome_url=outcome_url, sourcedid=sourcedid_lti, user=user)
+                lti_grade = LTIGradeActivity(outcome_url=outcome_url, sourcedid=sourcedid_lti, user=user)
                 lti_grade.save()
                 
                 #Check if course exist or update/create it
@@ -129,7 +131,10 @@ class LTIAuthMiddleware(MiddlewareMixin):
                         logger.info("New course created: '%s' (%s:%s)" % (course_name, consumer, course_id))
                         course = Course.objects.create(consumer_id=course_id, consumer=consumer, name=course_name, label=course_label)
                     course.student.add(user)
-                
+
+                current_url = resolve(request.path_info).url_name
+                print(current_url)
+
                 activity_id = lti_launch.get("resource_link_id")
                 if activity_id:
                     activity = Activity.objects.get(consumer=consumer, consumer_id=activity_id)

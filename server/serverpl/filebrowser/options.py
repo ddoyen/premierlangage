@@ -475,12 +475,12 @@ def load_pltp_option(request, filebrowser, target):
     except Exception as e:  # pragma: no cover
         msg = "Impossible to load '" + target + "' : " + htmlprint.code(
             str(type(e)) + ' - ' + str(e))
-            activity = Activity.objects.create(name=pltp.name, pltp=pltp)
-            url_lti = request.build_absolute_uri(reverse("playexo:activity_receiver", args=[activity.pk]))
-            messages.success(request, "L'activité <b>'"+pltp.name+"'</b> a bien été créée et a pour URL LTI: \
-                                      <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\""+url_lti+"\">  \
-                                      <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
-                                      </button>")
+        activity = Activity.objects.create(name=pltp.name, pltp=pltp)
+        url_lti = request.build_absolute_uri(reverse("playexo:activity_receiver", args=[activity.pk]))
+        messages.success(request, "L'activité <b>'"+pltp.name+"'</b> a bien été créée et a pour URL LTI: \
+                                  <br>&emsp;&emsp;&emsp; <input id=\"copy\" style=\"width: 700px;\" value=\""+url_lti+"\">  \
+                                  <button class=\"btn\" data-clipboard-action=\"copy\" data-clipboard-target=\"#copy\"><i class=\"far fa-copy\"></i> Copier\
+                                  </button>")
     except Exception as e: # pragma: no cover
         msg = "Impossible to load '"+target+"' : "+ htmlprint.code(str(type(e)) + ' - ' + str(e))
         messages.error(request, msg.replace(settings.FILEBROWSER_ROOT, ""))

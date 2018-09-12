@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+
 class LTIModel(models.Model):
     """Mixin for models that can be created through LTI.
     
@@ -19,10 +20,20 @@ class LTIModel(models.Model):
         abstract = True
         unique_together = ('consumer_id', 'consumer_id',)
 
-class LTIgrade(models.Model):
+
+class LTIGrade(models.Model):
     """Model class to contain every question in the forum"""
     outcome_url = models.CharField(max_length=200)
     sourcedid = models.CharField(max_length=200)
-    
+    user = models.ForeignKey(User, null=False, on_delete=models.CASCADE)
+
     class Meta:
         abstract = True
+
+
+class LTIGradeActivity(LTIGrade):
+    outcome_url = models.CharField(max_length=200)
+
+class LTIGradeHomework(LTIGrade):
+    outcome_url = models.CharField(max_length=200)
+

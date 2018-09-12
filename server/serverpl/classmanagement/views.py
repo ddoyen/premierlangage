@@ -37,6 +37,7 @@ from groups.models import RequiredGroups, Groups
 from playexo.models import Answer, Activity, Homework, AnswerHomework, Deposit
 from playexo.views import activity_receiver
 from playexo.enums import State
+from lti.outcome import send_grade
 
 
 logger = logging.getLogger(__name__)
@@ -509,6 +510,13 @@ def evaluate(request):
         raise Http404("Impossible d'accéder à la page, ce dépôt n'existe pas.")
     deposit.grade = grade
     deposit.save()
+    #### TODO
+    try:
+        group = Groups.objects.get(id=deposit.id_group)
+    except:
+        raise Http404("Impossible d'accéder à la page, ce dépôt n'existe pas.")
+    for user in group.students.all():
+        send_grade(request, user, homework, grade)
 
     return redirect('/courses/course/notation/?id=' + id_homework)
 
@@ -697,6 +705,14 @@ def upload_grade(request):
                     return redirect('/courses/course/notation/?id=' + id_homework)
                 deposit = Deposit.objects.get(id=int(row['id_deposit']))
                 deposit.grade = str(row['note'])
+                ####### TODO
+                try:
+                    group = Groups.objects.get(id=deposit.id_group)
+                except:
+                    raise Http404("Impossible d'accéder à la page, ce dépôt n'existe pas.")
+                for user in group.students.all():
+                    send_grade(request, user, homework, row['note'])
+
                 deposit.save()
     return redirect('/courses/course/notation/?id=' + id_homework)
 

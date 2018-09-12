@@ -373,14 +373,8 @@ def rename_group(request):
         return HttpResponseNotAllowed(['GET'])
     try :
         id = request.GET['id']
-        if not id:
-            return HttpResponseBadRequest("Missing 'id' parameter")
         name = request.GET['name']
-        if not name:
-            return HttpResponseBadRequest("Missing 'name' parameter")
         id_required_groups = request.GET['id_required_groups']
-        if not id_required_groups:
-            return HttpResponseBadRequest("Missing 'id_required_groups' parameter")
         try:
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
@@ -478,8 +472,8 @@ def auto_fill_group(request):
         return HttpResponseNotAllowed(['GET'])
     try :
         id_required_groups = request.GET['id_required_groups']
-        if not id_required_groups:
-            return HttpResponseBadRequest("Missing 'id_required_groups' parameter")
+        if not id:
+            return HttpResponseBadRequest("Missing 'id-required_group' parameter")
         try:
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
@@ -491,48 +485,48 @@ def auto_fill_group(request):
         remaining_student = []
         for student in rg.course.student.all():
             remaining_student.append(student)
+
         for group in rg.groups.all():
             for student in group.students.all():
                 remaining_student.remove(student)
-
-        for group in rg.groups.all():
-            if len(remaining_student) < 1:
-                for group in rg.groups.all():
-                    if len(group.students.all()) < group.max_members:
-                        for user in group.students.all():
-                            remaining_student.append(user)
-                break
-            remaining_spot = group.max_members - len(group.students.all())
-            for i in range(remaining_spot):
-                student = random.choice(remaining_student)
-                remaining_student.remove(student)
-                group.students.add(student)
 
         if len(remaining_student) < 1:
             messages.success(request, "Il n'y a pas d'étudiant sans groupe")
             return redirect('/groups/group/?id=' + id_required_groups)
 
-        if len(remaining_student) % rg.max_members == 0:
-            nb = len(remaining_student) / rg.max_members
-        else:
-            nb = int(len(remaining_student) // rg.max_members + 1)
-        for i in range(int(nb)):
-            g = Groups(name='test', max_members=rg.max_members, creation_date=datetime.now(),
-                       password='')
+
+        for group in rg.groups.all():
+            if len(remaining_student) < 1:
+                break
+            while len(group.students.all()) < rg.max_members and len(remaining_student) > 0:
+                student = random.choice(remaining_student)
+                group.students.add(student)
+                remaining_student.remove(student)
+                group.name = new_name(group.students.all())
+                group.save()
+
+
+
+        remaining_group = []
+        for group in rg.groups.all():
+            if len(group.students.all()) != rg.max_members:
+                remaining_group.append(group)
+                remaining_student.extend(group.students.all())
+
+        for group in remaining_group:
+            rg.groups.remove(group)
+
+        while len(remaining_student) > 0:
+            g = Groups(name='test', max_members=rg.max_members, password='')
             g.save()
-            if len(remaining_student) < rg.max_members:
-                for user in remaining_student:
-                    g.students.add(user)
+            for i in range(rg.max_members):
+                if len(remaining_student) < 1:
+                    break
+                student = random.choice(remaining_student)
+                g.students.add(student)
+                remaining_student.remove(student)
                 g.name = new_name(g.students.all())
                 g.save()
-                rg.groups.add(g)
-                break
-            for j in range(rg.max_members):
-                student = random.choice(remaining_student)
-                remaining_student.remove(student)
-                g.students.add(student)
-            g.name = new_name(g.students.all())
-            g.save()
             rg.groups.add(g)
 
         rg.save()
@@ -570,29 +564,18 @@ def auto_create_group(request):
            rg.groups.remove(group)
         rg.save()
 
-        if len(remaining_student) % rg.max_members == 0:
-            nb = len(remaining_student) / rg.max_members
-        else:
-            nb = int(len(remaining_student) // rg.max_members + 1)
-        for i in range(int(nb)):
-            g = Groups(name='test', max_members=rg.max_members, creation_date=datetime.now(),
-                       password='')
+        while len(remaining_student) > 0:
+            g = Groups(name='test', max_members=rg.max_members, password='')
             g.save()
-            if len(remaining_student) < rg.max_members:
-                for user in remaining_student:
-                    g.students.add(user)
+            for i in range(rg.max_members):
+                if len(remaining_student) < 1:
+                    break
+                student = random.choice(remaining_student)
+                g.students.add(student)
+                remaining_student.remove(student)
                 g.name = new_name(g.students.all())
                 g.save()
-                rg.groups.add(g)
-                break
-            for j in range(rg.max_members):
-                student = random.choice(remaining_student)
-                remaining_student.remove(student)
-                g.students.add(student)
-            g.name = new_name(g.students.all())
-            g.save()
             rg.groups.add(g)
-
         rg.save()
 
     except Groups.DoesNotExist:

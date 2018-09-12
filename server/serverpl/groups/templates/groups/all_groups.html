@@ -21,7 +21,7 @@
                     </div>
                     <td style="width: 40px;" align="center">
                         <span class="input-group-btn">
-                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-pencil-alt fa-2x" style="color:#ff4d4d"></i></button>
+                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-pencil-alt fa-2x"></i></button>
                         </span>
                     </td>
                 </form>
@@ -33,7 +33,7 @@
                     </div>
                     <td style="width: 40px;" align="center">
                         <span class="input-group-btn">
-                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-sync-alt fa-2x" style="color:#ff4d4d"></i></button>
+                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-sync-alt fa-2x"></i></button>
                         </span>
                     </td>
                 </form>
@@ -45,7 +45,7 @@
             {% if is_teacher %}
                 <td style="width: 40px;" align="center">
                     <a href="/groups/group/remove/?id={{group.id}}&id_required_groups={{ id_required_groups }}">
-                        <i class="fas fa-trash fa-2x" style="color:#ff4d4d"></i>
+                        <i class="fas fa-trash fa-2x"></i>
                     </a>
                 </td>
             {% endif %}
@@ -55,7 +55,7 @@
                 <td><b>Membre n°{{forloop.counter}}</b></td> 
                 <td>{{ student }}</td> 
                 {% if is_teacher %}
-                <td style="width: 40px;" align="center"><a href="/groups/group/kick/?id={{group.id}}&id_required_groups={{ id_required_groups }}&id_student={{ student.id }}"><i class="fas fa-times fa-2x" style="color:#ff4d4d"></i></a>
+                <td style="width: 40px;" align="center"><a href="/groups/group/kick/?id={{group.id}}&id_required_groups={{ id_required_groups }}&id_student={{ student.id }}"><i class="fas fa-times fa-2x"></i></a>
                 </td>
                 {% endif %}
             </tr>  
@@ -83,7 +83,7 @@
                             </td> 
                             <td>
                             <span class="input-group-btn">
-                                <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-plus-circle fa-2x" style="color:#ff4d4d"></i></button>
+                                <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-plus-circle fa-2x"></i></button>
                             </span>
                             </td>
                            
