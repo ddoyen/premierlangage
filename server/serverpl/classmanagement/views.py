@@ -375,7 +375,7 @@ def upload_file(request):
                 return redirect('/courses/course/homework/?id=' + id_homework)
             if request.method == 'POST' and request.FILES['myfile']:
                 myfile = request.FILES['myfile']
-                if myfile.size * 100000 > homework.deposit_size:
+                if myfile.size > homework.deposit_size * 100000:
                     messages.error(request,"La taille de votre fichier est trop élevé.")
                     return redirect('/courses/course/homework/?id=' + id_homework)
                 if myfile.name.split(".")[-1] != homework.extension:
@@ -560,12 +560,13 @@ def remove_uploaded_file(request):
     group = Groups.objects.get(id=deposit.id_group)
     if request.user not in group.students.all():
         logger.warning(
-            "User '" + request.user.username + "' denied for removing'" + answer.name + "'.")
+            "User '" + request.user.username + "' denied for removing file.")
         raise PermissionDenied("Vous n'êtes pas dans ce groupe.")
     try:
         answer_homework = AnswerHomework.objects.get(id=id_answer)
     except:
         raise Http404("Impossible d'accéder à la page, cette réponse n'existe pas.")
+    os.remove(deposit.file.path)
     answer_homework.deposits.remove(deposit)
     answer_homework.save()
     if len(answer_homework.deposits.all()) <= 0:
