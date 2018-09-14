@@ -6,7 +6,9 @@ Les clés suivante sont obligatoires:
 
 'title' : Chaîne de caractère représentant le titre du devoir maison
 
-'introduction': Chaîne de caractère représentant l'introduction du devoir maison
+'introduction': Introduction du devoir maison en markdown ou html
+
+'subject': sujet du devoir maison en markdown ou html
 
 'maxmembers': Entier représentant le nombre d'étudiant par groupe
 
@@ -29,11 +31,16 @@ Exemple:
 ```
 title=Prog C test
 introduction==
+<h1>Titre de l'intro</h1>
 Dans tout programme, le programmeur fait appel à des données. Ces données peuvent
 prendre des valeurs qui peuvent évoluer pendant toute l’exécution du programme. On
 parle alors de variables . Une variable a un type qui détermine les valeurs que la variable
 peut prendre ainsi que les opérations pouvant s’y appliquer. Nous utiliserons les types
 standards de C suivant : int, float et char.
+==
+sujet==
+<h1>Titre</h1>
+sujet en markdown ou html
 ==
 maxmembers=3
 date.group=29/09/2018-23:55
