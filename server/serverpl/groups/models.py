@@ -14,6 +14,13 @@ class Groups(models.Model):
     def __str__(self):
         return 'Group name : ' + self.name + '\nCreation date : ' + str(self.creation_date)
 
+    def new_name(self):
+        students = []
+        for student in self.students.all():
+            students.append(student.username)
+        self.name = '_'.join(students)
+        self.save()
+
 
 class RequiredGroups(models.Model):
     id = models.AutoField(primary_key=True)
@@ -25,6 +32,11 @@ class RequiredGroups(models.Model):
 
     def __str__(self):
         return 'test'
+
+    def is_teacher(self, request):
+        if request.user in self.course.teacher.all():
+            return True
+        return False
 
 
 

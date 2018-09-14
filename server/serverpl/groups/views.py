@@ -29,7 +29,7 @@ def index(request):
     today = datetime.now(timezone.utc)
     teacher = False
     for rg in required_groups:
-        if is_teacher(request, rg):
+        if rg.is_teacher(request):
             teacher = True
         limit = rg.limit_date
         rg.state = limit > today
@@ -79,26 +79,13 @@ def show_groups(request):
             'groups': groups,
             'in_group' : in_group,
             'state' : state,
-            'is_teacher': is_teacher(request, required_groups),
+            'is_teacher': required_groups.is_teacher(request),
         }
     except RequiredGroups.DoesNotExist:
         messages.error(request, "Le groupe n'existe pas")
         return redirect('/groups/')
     return render(request, "groups/group.html", context)
 
-
-def is_teacher(request, required_groups):
-    if request.user in required_groups.course.teacher.all():
-        return True
-    return False
-
-
-def new_name(lst):
-    students = []
-    for student in lst:
-        students.append(student.username)
-    name = '_'.join(students)
-    return name
 
 @login_required
 @csrf_exempt
@@ -127,7 +114,7 @@ def join_group(request):
             messages.error(request, "Mauvais mot de passe pour rejoindre le groupe " + group.name + ".")
             return redirect('/groups/group/?id=' + id_required_groups)
         group.students.add(request.user)
-        group.name = new_name(group.students.all())
+        group.new_name()
         group.save()
         messages.success(request, "Vous avez rejoint le groupe " + group.name + ".")
     except Groups.DoesNotExist:
@@ -162,7 +149,7 @@ def leave_group(request):
             messages.success(request, "Vous avez quitté le groupe " + group.name + " et le groupe a été supprimé.")
         else:
             messages.success(request, "Vous avez quitté le groupe " + group.name + ".")
-            group.name = new_name(group.students.all())
+            group.new_name()
         group.save()
     except Groups.DoesNotExist:
         messages.error(request, "Le groupe n'existe pas")
@@ -182,8 +169,7 @@ def create_new_group(request):
         if not max_members:
             return HttpResponseBadRequest("Missing 'max_members' parameter")
         password = request.GET['password']
-        g = Groups(name=request.user.username, max_members=max_members, creation_date=datetime.now(),
-                   password=password)
+        g = Groups(name=request.user.username, max_members=max_members, password=password)
         g.save()
         g.students.add(request.user)
         try:
@@ -210,7 +196,7 @@ def kick_from_group(request):
             required_groups = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, required_groups):
+        if not required_groups.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
@@ -229,7 +215,7 @@ def kick_from_group(request):
         group.students.remove(user)
         messages.success(request,
                          "L'étudiant " + user.username + " a été expulsé du groupe " + group.name + ".")
-        group.name = new_name(group.students.all())
+        group.new_name()
         group.save()
     except RequiredGroups.DoesNotExist:
         messages.error(request, "Le groupe n'existe pas")
@@ -259,7 +245,7 @@ def remove_group(request):
         id = request.GET['id']
         if not id:
             return HttpResponseBadRequest("Missing 'id' parameter")
-        if not is_teacher(request, required_groups):
+        if not required_groups.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
@@ -304,12 +290,11 @@ def create_new_group_admin(request):
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, rg):
+        if not rg.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
-        g = Groups(name=name, max_members=max_members, creation_date=datetime.now(),
-                   password=password)
+        g = Groups(name=name, max_members=max_members, password=password)
         g.save()
         rg.groups.add(g)
     except RequiredGroups.DoesNotExist:
@@ -338,7 +323,7 @@ def join_group_admin(request):
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, rg):
+        if not rg.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
@@ -379,7 +364,7 @@ def rename_group(request):
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, rg):
+        if not rg.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
@@ -411,7 +396,7 @@ def auto_rename_group(request):
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, rg):
+        if not rg.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
@@ -422,7 +407,7 @@ def auto_rename_group(request):
         if len(group.students.all()) < 1:
             messages.error(request, "Le groupe est vide !")
             return redirect('/groups/group/?id=' + id_required_groups)
-        group.name = new_name(group.students.all())
+        group.new_name()
         group.save()
         messages.success(request, "Le groupe a bien été renommé en " + group.name + ".")
     except Groups.DoesNotExist:
@@ -449,7 +434,7 @@ def resize_group(request):
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, rg):
+        if not rg.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
@@ -473,18 +458,20 @@ def auto_fill_group(request):
     try :
         id_required_groups = request.GET['id_required_groups']
         if not id:
-            return HttpResponseBadRequest("Missing 'id-required_group' parameter")
+            return HttpResponseBadRequest("Missing 'id_required_group' parameter")
         try:
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, rg):
+        if not rg.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
         remaining_student = []
+
         for student in rg.course.student.all():
-            remaining_student.append(student)
+            if student not in rg.course.teacher.all():
+                remaining_student.append(student)
 
         for group in rg.groups.all():
             for student in group.students.all():
@@ -502,7 +489,7 @@ def auto_fill_group(request):
                 student = random.choice(remaining_student)
                 group.students.add(student)
                 remaining_student.remove(student)
-                group.name = new_name(group.students.all())
+                group.new_name()
                 group.save()
 
 
@@ -525,7 +512,7 @@ def auto_fill_group(request):
                 student = random.choice(remaining_student)
                 g.students.add(student)
                 remaining_student.remove(student)
-                g.name = new_name(g.students.all())
+                g.new_name()
                 g.save()
             rg.groups.add(g)
 
@@ -551,13 +538,15 @@ def auto_create_group(request):
             rg = RequiredGroups.objects.get(id=id_required_groups)
         except:
             raise Http404("RequiredGroups (id: " + str(id_required_groups) + ") not found.")
-        if not is_teacher(request, rg):
+        if not rg.is_teacher(request):
             logger.warning(
                 "User '" + request.user.username + "' denied to use the auto creation'" + "'.")
             raise PermissionDenied("Vous n'êtes pas professeur de cette classe.")
+
         remaining_student = []
         for student in rg.course.student.all():
-            remaining_student.append(student)
+            if student not in rg.course.teacher.all():
+                remaining_student.append(student)
 
 
         for group in rg.groups.all():
@@ -573,8 +562,8 @@ def auto_create_group(request):
                 student = random.choice(remaining_student)
                 g.students.add(student)
                 remaining_student.remove(student)
-                g.name = new_name(g.students.all())
                 g.save()
+                g.new_name()
             rg.groups.add(g)
         rg.save()
 

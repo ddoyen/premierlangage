@@ -1,0 +1,25 @@
+{% extends "classmanagement/base.html" %}
+
+{% load static %}
+{% load django_markdown %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/block_chart.css' %}" />
+<link rel="stylesheet" href="{% static 'css/classmanagement.css' %}" />
+{% endblock %}
+
+{% block header_script %}
+<script src="{% static 'js/block_chart.js' %}"></script> 
+{% endblock %}
+
+{% block content %}
+<div class="container" style="width: 50%">
+    <h1><center>{{homework.pldm.json.title}}</center></h1>
+    <br>
+    {% if homework.pldm.json.subject %}
+        {% with texth__=homework.pldm.json.subject|markdown %}
+            {{ texth__|safe }}
+        {% endwith %}
+    {% endif %}
+</div>
+
+{% endblock %}

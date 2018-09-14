@@ -15,6 +15,9 @@ nav:
     - 'Exemple': 'parser_exemple.md'
 - grader:
     - 'Ecrire un grader': 'ecrire_un_grader.md'
+- Devoir maison:
+    - 'Ecrire un devoir maison': 'ecrire_devoir_maison.md'
+    - 'Importer des notes': 'note_csv.md'
 
 theme:
     name: null

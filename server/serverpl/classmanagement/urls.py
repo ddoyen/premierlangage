@@ -15,6 +15,7 @@ urlpatterns = [
     url(r'^course/upload/$', views.upload_file),
     url(r'^course/upload_grade/$', views.upload_grade),
     url(r'^course/evaluate/$', views.evaluate),
+    url(r'^course/subject/$', views.get_subject),
     url(r'^course/remove_uploaded/$', views.remove_uploaded_file),
     url(r'^course/download/$', views.download_file),
     url(r'^course/download_all/$', views.download_all_file),

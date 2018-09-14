@@ -23,6 +23,7 @@
         <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}" />
         <link rel="stylesheet" href="{% static 'css/nav.css' %}" />
         <link rel="stylesheet" href="{% static 'css/pl.css' %}" />
+        <link rel="stylesheet" href="{% static 'css/fileinput.min.css' %}" />
         {% block css %}{% endblock %}
         
         <!-- JS -->
@@ -32,6 +33,12 @@
         <script src="{% static 'js/popper.js' %}" ></script>
         <script src="{% static 'js/bootstrap.js' %}" ></script>
         <script src="{% static 'js/fontawesome-all.js' %}" ></script>
+        <script src="{% static 'js/piexif.min.js' %}" ></script>
+        <script src="{% static 'js/sortable.min.js' %}" ></script>
+        <script src="{% static 'js/purify.min.js' %}" ></script>
+        <script src="{% static 'js/fileinput.min.js' %}" ></script>
+        <script src="{% static 'js/LANG.js' %}" ></script>
+        
         {% block js %}{% endblock %}
         {% block header_script %}{% endblock %}
     </head>

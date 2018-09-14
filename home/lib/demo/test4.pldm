@@ -1,10 +1,11 @@
 title=Prog C test
-introduction== 
-Dans tout programme, le programmeur fait appel à des données. Ces données peuvent
-prendre des valeurs qui peuvent évoluer pendant toute l’exécution du programme. On
-parle alors de variables . Une variable a un type qui détermine les valeurs que la variable
-peut prendre ainsi que les opérations pouvant s’y appliquer. Nous utiliserons les types
-standards de C suivant : int, float et char.
+introduction==
+<h1>Introduciton test</h1>
+Iamque lituis cladium concrepantibus internarum non celate ut antea turbidum saeviebat ingenium a veri consideratione detortum et nullo inpositorum vel conpositorum fidem sollemniter inquirente nec discernente a societate noxiorum insontes velut exturbatum e iudiciis fas omne discessit, et causarum legitima silente defensione carnifex rapinarum sequester et obductio capitum et bonorum ubique multatio versabatur per orientales provincias, quas recensere puto nunc oportunum absque Mesopotamia digesta, cum bella Parthica dicerentur, et Aegypto, quam necessario aliud reieci ad tempus.
+==
+subject==
+<h1><center>This is a test</center></h1>
+Iamque lituis cladium concrepantibus internarum non celate ut antea turbidum saeviebat ingenium a veri consideratione detortum et nullo inpositorum vel conpositorum fidem sollemniter inquirente nec discernente a societate noxiorum insontes velut exturbatum e iudiciis fas omne discessit, et causarum legitima silente defensione carnifex rapinarum sequester et obductio capitum et bonorum ubique multatio versabatur per orientales provincias, quas recensere puto nunc oportunum absque Mesopotamia digesta, cum bella Parthica dicerentur, et Aegypto, quam necessario aliud reieci ad tempus.
 ==
 maxmembers=3
 date.group=29/09/2018-23:55
@@ -14,6 +15,23 @@ deposit.size=10
 deposit.late=False
 id_course=1
 extension=pdf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -4,9 +4,9 @@
     <table class="table table-bordered">                  
         <thead> 
             {% if group.need_password %}
-                <h2><center>{{ group.name }}&nbsp;<i class="fas fa-lock" style="color:ff4d4d"></i></center></h2>
+                <h2><center>{{ group.name }}&nbsp;<i class="fas fa-lock" style="color:ff4d4d" title="Groupe avec un mot de passe"></i></center></h2>
             {% else %}
-                <h2><center>{{ group.name }}&nbsp;<i class="fas fa-unlock" style="color:#4cff15"></i></center></h2>
+                <h2><center>{{ group.name }}&nbsp;<i class="fas fa-unlock" style="color:#4cff15" title="Groupe sans mot de passe"></i></center></h2>
             {% endif %}
         </thead> 
         <tbody> 
@@ -21,7 +21,7 @@
                     </div>
                     <td style="width: 40px;" align="center">
                         <span class="input-group-btn">
-                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-pencil-alt fa-2x"></i></button>
+                            <button type="submit" class="btn btn-link" value="Submit" title="Renommer le groupe"><i class="fas fa-pencil-alt "></i></button>
                         </span>
                     </td>
                 </form>
@@ -33,7 +33,7 @@
                     </div>
                     <td style="width: 40px;" align="center">
                         <span class="input-group-btn">
-                            <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-sync-alt fa-2x"></i></button>
+                            <button type="submit" class="btn btn-link" value="Submit" title="Renommer le groupe automatiquement"><i class="fas fa-sync-alt "></i></button>
                         </span>
                     </td>
                 </form>
@@ -44,8 +44,8 @@
             <td>{{ group.max_members }}</td> 
             {% if is_teacher %}
                 <td style="width: 40px;" align="center">
-                    <a href="/groups/group/remove/?id={{group.id}}&id_required_groups={{ id_required_groups }}">
-                        <i class="fas fa-trash fa-2x"></i>
+                    <a href="/groups/group/remove/?id={{group.id}}&id_required_groups={{ id_required_groups }}" title="Supprimer le groupe">
+                        <i class="fas fa-trash "></i>
                     </a>
                 </td>
             {% endif %}
@@ -55,7 +55,7 @@
                 <td><b>Membre n°{{forloop.counter}}</b></td> 
                 <td>{{ student }}</td> 
                 {% if is_teacher %}
-                <td style="width: 40px;" align="center"><a href="/groups/group/kick/?id={{group.id}}&id_required_groups={{ id_required_groups }}&id_student={{ student.id }}"><i class="fas fa-times fa-2x"></i></a>
+                <td style="width: 40px;" align="center"><a href="/groups/group/kick/?id={{group.id}}&id_required_groups={{ id_required_groups }}&id_student={{ student.id }}" title="Expulser l'utilisateur {{student}} du groupe"><i class="fas fa-times "></i></a>
                 </td>
                 {% endif %}
             </tr>  
@@ -83,7 +83,7 @@
                             </td> 
                             <td>
                             <span class="input-group-btn">
-                                <button type="submit" class="btn btn-link" value="Submit"><i class="fas fa-plus-circle fa-2x"></i></button>
+                                <button type="submit" class="btn btn-link" value="Submit" title="Ajouter l'utilisateur au groupe"><i class="fas fa-plus-circle "></i></button>
                             </span>
                             </td>
                            
@@ -97,23 +97,21 @@
     {% if group.avalaible_spot2 > 0 and not in_group and state%}
         <form action="/groups/group/joingroup/" method="get">
             <div class="container;pull-left" style="width: 50%">
-            <input type="hidden" name="id_required_groups" id="id" value="{{ id_required_groups }}">
-            <input type="hidden" name="id" id="id" value="{{ group.id }}">
-            <div class="input-group">
-                {% if group.need_password %}           
-                    <input type="password" name="password" class="form-control" placeholder="Password">
-                {% else %}
-                    <input type="hidden" name="password" class="form-control" value="">
-                {% endif %}
-            <span class="input-group-btn">
-                <button type="submit" class="btn btn-dark btn-lg" value="Submit"><i class="fas fa-plus-circle"></i></button>    
-            </span>
-            </div>
+                <input type="hidden" name="id_required_groups" id="id" value="{{ id_required_groups }}">
+                <input type="hidden" name="id" id="id" value="{{ group.id }}">
+                <div class="input-group">
+                    {% if group.need_password %}           
+                        <input type="password" name="password" class="form-control" placeholder="Password">
+                    {% else %}
+                        <input type="hidden" name="password" class="form-control" value="">
+                    {% endif %}
+                    <button type="submit" class="btn btn-dark btn-lg" value="Submit" title="Rejoindre ce groupe">Rejoindre <i class="fas fa-plus-circle"></i></button>    
+                </div>
             </div>
         </form>
     {% endif %}
     {% if request.user in group.students.all and state%}
-        <a class="btn btn-dark btn-large" href="/groups/group/leavegroup/?id={{group.id}}&id_required_groups={{ id_required_groups }}">Quitter</a>
+        <a class="btn btn-dark btn-large" href="/groups/group/leavegroup/?id={{group.id}}&id_required_groups={{ id_required_groups }}" title="Quitter ce groupe">Quitter <i class="fas fa-sign-out-alt"></i></a>
     {% endif %}
     <br>
 {% endfor %}

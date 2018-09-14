@@ -8,7 +8,20 @@
 
 
 import logging
-
+from django.http import FileResponse
+from django.template.loader import get_template
+from django.template import Context
+from django.http import HttpResponse
+from tempfile import TemporaryFile
+from django.template.loader import render_to_string
+import htmlprint
+from django import http
+from django.shortcuts import render_to_response
+from django.template.loader import get_template
+from django.template import Context
+import xhtml2pdf.pisa as pisa
+from io import StringIO
+import cgi
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout
@@ -37,7 +50,7 @@ from groups.models import RequiredGroups, Groups
 from playexo.models import Answer, Activity, Homework, AnswerHomework, Deposit
 from playexo.views import activity_receiver
 from playexo.enums import State
-from lti.outcome import send_grade
+
 
 
 logger = logging.getLogger(__name__)
@@ -340,10 +353,14 @@ def upload_file(request):
         logger.warning(
             "User '" + request.user.username + "' denied to upload file in'" + rg.course.name + "'.")
         raise PermissionDenied("Vous n'êtes pas étudiant de cette classe.")
+    id_group = None
     for group in rg.groups.all():
         if request.user in group.students.all():
             id_group = group.id
             break
+    if id_group == None:
+        messages.error(request, "Vous ne pouvez pas déposer de fichier si vous n'avez pas de groupe.")
+        return redirect('/courses/course/homework/?id=' + id_homework)
     homework = Homework.objects.get(id=id_homework)
     if datetime.now(timezone.utc) >= homework.date_deposit_end and homework.can_be_late is False:
         messages.error(request, "Vous ne pouvez plus rendre de devoir.")
@@ -358,8 +375,6 @@ def upload_file(request):
                 return redirect('/courses/course/homework/?id=' + id_homework)
             if request.method == 'POST' and request.FILES['myfile']:
                 myfile = request.FILES['myfile']
-                print(myfile.name.split(".")[-1])
-                print(homework.extension)
                 if myfile.size * 100000 > homework.deposit_size:
                     messages.error(request,"La taille de votre fichier est trop élevé.")
                     return redirect('/courses/course/homework/?id=' + id_homework)
@@ -384,8 +399,6 @@ def upload_file(request):
         if myfile.size > homework.deposit_size * 100000:
             messages.error(request, "La taille de votre fichier est trop élevé.")
             return redirect('/courses/course/homework/?id=' + id_homework)
-        print(myfile.name.split(".")[-1])
-        print(homework.extension)
         if myfile.name.split(".")[-1] != homework.extension:
             messages.error(request, "Le format du fichier n'est pas accepté.")
             return redirect('/courses/course/homework/?id=' + id_homework)
@@ -434,7 +447,6 @@ def notation(request):
         data['id_homework'] = homework.id
 
         data['answers'] = answer_homework
-        print(answer_homework.deposits)
         dic.append(data)
     context = {
         'date_limit': homework.date_deposit_end,
@@ -511,12 +523,12 @@ def evaluate(request):
     deposit.grade = grade
     deposit.save()
     #### TODO
-    try:
+    """try:
         group = Groups.objects.get(id=deposit.id_group)
     except:
         raise Http404("Impossible d'accéder à la page, ce dépôt n'existe pas.")
     for user in group.students.all():
-        send_grade(request, user, homework, grade)
+        send_grade(request, user, homework, grade)"""
 
     return redirect('/courses/course/notation/?id=' + id_homework)
 
@@ -599,9 +611,7 @@ def download_all_file(request):
     for answer in answers:
         deposits = answer.deposits.all()
         name = "/".join(answer.deposits.all()[0].file.name.split('/')[1:-1])
-        print(name)
         paths.append(settings.MEDIA_ROOT + '/DM/' +  name)
-    print(paths)
 
     """
         Compresses directories and files to a single zip file.
@@ -706,15 +716,43 @@ def upload_grade(request):
                 deposit = Deposit.objects.get(id=int(row['id_deposit']))
                 deposit.grade = str(row['note'])
                 ####### TODO
-                try:
+                """try:
                     group = Groups.objects.get(id=deposit.id_group)
                 except:
                     raise Http404("Impossible d'accéder à la page, ce dépôt n'existe pas.")
                 for user in group.students.all():
-                    send_grade(request, user, homework, row['note'])
+                    send_grade(request, user, homework, row['note'])"""
 
                 deposit.save()
     return redirect('/courses/course/notation/?id=' + id_homework)
+
+
+def get_subject(request):
+    id_homework = request.GET['id']
+    if not id_homework:
+        return HttpResponseBadRequest("Missing 'id' parameter")
+    id_requiredgroup = request.GET['id_required_group']
+    if not id_homework:
+        return HttpResponseBadRequest("Missing 'id_required_group' parameter")
+    try:
+        rg = RequiredGroups.objects.get(id=id_requiredgroup)
+        if request.user not in rg.course.student.all():
+            messages.error(request, "Vous n'appartenez pas à cette classe")
+            return redirect('/')
+    except:
+        raise Http404("Impossible d'accéder à la page, ce devoir n'existe pas.")
+    try:
+        homework = Homework.objects.get(id=id_homework)
+    except:
+        raise Http404("Impossible d'accéder à la page, ce devoir n'existe pas.")
+    if request.user not in rg.course.student.all():
+        logger.warning(
+            "User '" + request.user.username + "' denied to upload file in'" + rg.course.name + "'.")
+        raise PermissionDenied("Vous n'êtes pas étudiant de cette classe.")
+    context = {
+        'homework': homework,
+    }
+    return render(request, "classmanagement/homework_subject.html", context)
 
 
 def disconnect(request):

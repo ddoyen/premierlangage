@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 PL_MANDATORY_KEY = ['title', 'form']
 PLTP_MANDATORY_KEY = ['title', '__pl', 'introduction']
-PLDM_MANDATORY_KEY = ['title', '__pl', 'introduction', 'id_course','maxmembers','id_course','date.group','date.deposit_end','deposit.number','deposit.size','deposit.late']
+PLDM_MANDATORY_KEY = ['title', '__pl', 'introduction','id_course','date.group','date.deposit_end','deposit.number','deposit.size','deposit.late', 'extension', 'subject']
 MUST_BE_STRING = ['text', 'texth', 'introductionh', 'introduction', 'form', 'evaluator', 'before', 'author', 'title']
 
 
