@@ -23,12 +23,14 @@ from classmanagement.models import Course
 logger = logging.getLogger(__name__)
 
 
+
 class Activity(LTIModel):
     name = models.CharField(max_length=200, null=False)
     open = models.BooleanField(default=True)
     pltp = models.ForeignKey(PLTP, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
-
+    
+    
     @classmethod
     def get_or_create_from_lti(cls, request, lti_launch):
         """Creates an Activity corresponding to ID in the url and sets
@@ -40,32 +42,34 @@ class Activity(LTIModel):
         Returns a tuple of (object, created), where object is the
         retrieved or created object and created is a boolean specifying
         whether a new object was created."""
-        course_id = lti_launch["context_id"]
-        consumer = lti_launch['oauth_consumer_key']
-        activity_id = lti_launch['resource_link_id']
-        activity_name = lti_launch['resource_link_title']
-        if not (course_id and activity_id and activity_name and consumer):
+        course_id = lti_launch.get("context_id")
+        consumer = lti_launch.get('oauth_consumer_key')
+        activity_id = lti_launch.get('resource_link_id')
+        activity_name = lti_launch.get('resource_link_title')
+        if not all([course_id, activity_id, activity_name, consumer]):
+            # TODO : Use BadRequest Exception
             raise Http404("Could not create Activity: on of these parameters are missing:"
-                  + "[context_id, resource_link_id, resource_link_title, oauth_consumer_key]")
-
+                          + "[context_id, resource_link_id, resource_link_title, "
+                            "oauth_consumer_key]")
+        
         course = Course.objects.get(consumer_id=course_id, consumer=consumer)
         try:
             return cls.objects.get(consumer_id=activity_id, consumer=consumer), False
         except Activity.DoesNotExist:
-            urlmatch = resolve(request.path)
-            if not urlmatch.app_name or not urlmatch.url_name:
-                urlmatch = None
-            if urlmatch and urlmatch.app_name + ":" + urlmatch.url_name != "playexo:activity":
+            match = resolve(request.path)
+            if not match.app_name or not match.url_name:
+                match = None
+            if not match or (match and match.app_name + ":" + match.url_name != "playexo:activity"):
                 logger.warning(request.path + " does not correspond to 'playexo:activity' in "
                                               "Activity.get_or_create_from_lti")
                 raise Http404("Activity could not be found.")
-            parent = get_object_or_404(Activity, id=urlmatch.kwargs['activity_id'])
+            parent = get_object_or_404(Activity, id=match.kwargs['activity_id'])
             new = Activity.objects.create(consumer_id=activity_id, consumer=consumer,
                                           name=activity_name, pltp=parent.pltp, course=course)
             return new, True
-
-
-    def __str__(self):
+    
+    
+    def __str__(self):  # pragma: no cover
         return str(self.id) + " " + self.name
 
 
@@ -85,7 +89,6 @@ class SessionActivity(models.Model):
     class Meta:
         unique_together = ('user', 'activity')
     
-    
     def exercise(self, pl=...):
         """Return the SessionExercice corresponding to self.current_pl.
         
@@ -95,8 +98,8 @@ class SessionActivity(models.Model):
         Raise IntegrityError if no session for either self.current_pl or pl (if given) was found."""
         try:
             return next(
-                i for i in self.sessionexercise_set.all()
-                if i.pl == (self.current_pl if pl is ... else pl)
+                    i for i in self.sessionexercise_set.all()
+                    if i.pl == (self.current_pl if pl is ... else pl)
             )
         except StopIteration:
             raise IntegrityError("'current_pl' of SessionActivity does not have a corresponding "
@@ -120,7 +123,7 @@ class SessionExerciseAbstract(models.Model):
     
     class Meta:
         abstract = True
-
+    
     # TODO: Allowing to add key with the PL syntax (dict1.dict2.val)
     def add_to_context(self, key, value):
         """Add value corresponding to key in the context."""
@@ -164,9 +167,9 @@ class SessionExerciseAbstract(models.Model):
         response = evaluator.call()
         answer = {
             "answers": answers,
-            "user": request.user,
-            "pl": self.pl,
-            "grade": response['grade'],
+            "user"   : request.user,
+            "pl"     : self.pl,
+            "grade"  : response['grade'],
         }
         
         if response['status'] < 0:  # Sandbox Error
@@ -191,16 +194,16 @@ class SessionExerciseAbstract(models.Model):
         
         keys = list(response.keys())
         for key in keys:
-            response[key+"__"] = response[key]
+            response[key + "__"] = response[key]
         for key in keys:
             del response[key]
         del response['context__']
         context.update(response)
-
+        
         dic = dict(self.context)
         dic.update(context)
         dic['answers__'] = answers
-
+        
         return answer, feedback, dic
     
     
@@ -231,13 +234,13 @@ class SessionExerciseAbstract(models.Model):
         context = dict(response['context'])
         keys = list(response.keys())
         for key in keys:
-            response[key+"__"] = response[key]
+            response[key + "__"] = response[key]
         for key in keys:
             del response[key]
         del response['context__']
         
         context.update(response)
-        self.envid = response['id__']  
+        self.envid = response['id__']
         self.context.update(context)
         self.built = True
         self.save()
@@ -257,7 +260,6 @@ class SessionExercise(SessionExerciseAbstract):
     
     class Meta:
         unique_together = ('pl', 'activity_session')
-    
     
     @receiver(post_save, sender=SessionActivity)
     def create_session_exercise(sender, instance, created, **kwargs):
@@ -302,11 +304,11 @@ class SessionExercise(SessionExerciseAbstract):
         self.add_to_context('seed', seed)
         
         predic = {
-            'user_settings__':  self.activity_session.user.profile,
-            'user__':  self.activity_session.user,
-            'pl_id__':  pl.id,
-            'answers__':  last.answers if last else {},
-            'grade__':  highest_grade.grade if highest_grade else None,
+            'user_settings__': self.activity_session.user.profile,
+            'user__'         : self.activity_session.user,
+            'pl_id__'        : pl.id,
+            'answers__'      : last.answers if last else {},
+            'grade__'        : highest_grade.grade if highest_grade else None,
         }
         
         if not self.built:
@@ -348,7 +350,7 @@ class SessionExercise(SessionExerciseAbstract):
     
     def get_navigation(self, request, context=None):
         pl_list = [{
-            'id': None,
+            'id'   : None,
             'state': None,
             'title': self.activity_session.activity.pltp.json['title'],
         }]
@@ -361,7 +363,7 @@ class SessionExercise(SessionExerciseAbstract):
         context = dict(self.context if not context else context)
         context.update({
             "pl_list__": pl_list,
-            'pl_id__': self.pl.id if self.pl else None
+            'pl_id__'  : self.pl.id if self.pl else None
         })
         return get_template("playexo/navigation.html").render(context, request)
     
@@ -369,7 +371,7 @@ class SessionExercise(SessionExerciseAbstract):
     def get_context(self, request, context=None):
         return {
             "navigation": self.get_navigation(request, context),
-            "exercise": self.get_exercise(request, context),
+            "exercise"  : self.get_exercise(request, context),
         }
 
 
@@ -404,7 +406,7 @@ class SessionTest(SessionExerciseAbstract):
         if len(q) >= self.MAX_SESSION_PER_USER:
             for elem in q[self.MAX_SESSION_PER_USER:]:
                 elem.delete()
-            
+        
         super().save(*args, **kwargs)
     
     
@@ -424,12 +426,12 @@ class SessionTest(SessionExerciseAbstract):
             seed = time.time()
             self.built = False
         self.add_to_context('seed', seed)
-
+        
         predic = {
-            'user_settings__':  self.user.profile,
-            'session__': self,
-            'user__':  self.user,
-            'pl_id__':  pl.id,
+            'user_settings__': self.user.profile,
+            'session__'      : self,
+            'user__'         : self.user,
+            'pl_id__'        : pl.id,
         }
         
         if not self.built:
@@ -441,7 +443,7 @@ class SessionTest(SessionExerciseAbstract):
             if type(dic[key]) is str:
                 dic[key] = Template(dic[key]).render(RequestContext(request, dic))
         return get_template("playexo/preview.html").render(dic, request)
-
+    
     
     def get_exercise(self, request, context=None, answer=None):
         """Return a template of the PL or the PLTP rendered with self.context.
@@ -490,7 +492,7 @@ class Answer(models.Model):
     @staticmethod
     def pltp_state(pltp, user):
         """Return a list of tuples (pl_id, state) where state follow pl_state() rules."""
-        return [(pl.id, Answer.pl_state(pl, user)) for pl in pltp.pl.all()] 
+        return [(pl.id, Answer.pl_state(pl, user)) for pl in pltp.pl.all()]
     
     
     @staticmethod
@@ -508,20 +510,20 @@ class Answer(models.Model):
             
             All data are strings."""
         state = {
-            State.SUCCEEDED:   [0.0, 0],
-            State.PART_SUCC:   [0.0, 0],
-            State.FAILED:      [0.0, 0],
-            State.STARTED:     [0.0, 0],
+            State.SUCCEEDED  : [0.0, 0],
+            State.PART_SUCC  : [0.0, 0],
+            State.FAILED     : [0.0, 0],
+            State.STARTED    : [0.0, 0],
             State.NOT_STARTED: [0.0, 0],
-            State.ERROR:       [0.0, 0],
+            State.ERROR      : [0.0, 0],
         }
         
         for pl in pltp.pl.all():
             state[Answer.pl_state(pl, user)][1] += 1
-            
+        
         nb_pl = max(sum([state[k][1] for k in state]), 1)
         for k, v in state.items():
-            state[k] = [str(state[k][1]*100/nb_pl), str(state[k][1])]
+            state[k] = [str(state[k][1] * 100 / nb_pl), str(state[k][1])]
         
         return state
     
@@ -565,12 +567,12 @@ class Answer(models.Model):
             
             All data are strings."""
         state = {
-            State.SUCCEEDED:   [0.0, 0],
-            State.PART_SUCC:   [0.0, 0],
-            State.FAILED:      [0.0, 0],
-            State.STARTED:     [0.0, 0],
+            State.SUCCEEDED  : [0.0, 0],
+            State.PART_SUCC  : [0.0, 0],
+            State.FAILED     : [0.0, 0],
+            State.STARTED    : [0.0, 0],
             State.NOT_STARTED: [0.0, 0],
-            State.ERROR:       [0.0, 0],
+            State.ERROR      : [0.0, 0],
         }
         
         for activity in course.activity_set.all():
@@ -580,6 +582,6 @@ class Answer(models.Model):
         
         nb_pl = max(sum([state[k][1] for k in state]), 1)
         for k, v in state.items():
-            state[k] = [str(state[k][1]*100/nb_pl), str(state[k][1])]
+            state[k] = [str(state[k][1] * 100 / nb_pl), str(state[k][1])]
         
         return state
