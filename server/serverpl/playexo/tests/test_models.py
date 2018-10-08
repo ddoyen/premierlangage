@@ -21,4 +21,3 @@ class ModelTestCase(TestCase):
             }
         with self.assertRaises(Http404):
             Activity.get_or_create_from_lti(R(), params)
-        
