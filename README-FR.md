@@ -87,7 +87,7 @@ Nous arrivons finalement vers les ressources pédagogiques finales, les énoncé
 * un dépôt pour la programmation en Python : python-pl-bank --> https://github.com/nimdanor/python-pl-bank (voir Dominique Revuz)
 * un dépôt pour la programmation en C : Cbank --> https://github.com/nborie/Cbank (voir Nicolas Borie)
 * un dépôt pour des cours sur les systèmes d'exploitation : OSbank --> https://github.com/nborie/OSbank (voir Nicolas Borie)
-* un dépôt pour la programmation en C++ : Cbank --> https://github.com/nborie/Cbank (voir Nicolas Borie)
+* un dépôt pour la programmation en C++ : Cbank --> https://github.com/premierlangage/cpp-info111  (voir Nicolas Thiery)
 
 
 Bienvenu à bord.
